@@ -2,25 +2,39 @@ import asyncio
 import base64
 import re
 from pyrogram import filters
+from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import FloodWait, UserNotParticipant
-from config import ADMINS
-from database.db import get_fsubs
+from config import ADMINS, LOGGER
+from config import FORCE_SUB_1, FORCE_SUB_2
 
 
 async def check_fsub(client, user_id):
     if user_id in ADMINS:
         return True
 
-    fsubs = await get_fsubs()
+    fsubs = []
+    if FORCE_SUB_1 and FORCE_SUB_1 != "0":
+        fsubs.append(FORCE_SUB_1)
+    if FORCE_SUB_2 and FORCE_SUB_2 != "0":
+        fsubs.append(FORCE_SUB_2)
+
     if not fsubs:
         return True
 
     for fsub in fsubs:
         try:
-            member = await client.get_chat_member(
-                chat_id=fsub["chat_id"], user_id=user_id
-            )
-            if member.status not in ["creator", "administrator", "member"]:
+            # Cast to int if it's a numeric chat ID string
+            try:
+                fsub_id = int(fsub)
+            except ValueError:
+                fsub_id = fsub
+
+            member = await client.get_chat_member(chat_id=fsub_id, user_id=user_id)
+            if member.status not in [
+                ChatMemberStatus.OWNER,
+                ChatMemberStatus.ADMINISTRATOR,
+                ChatMemberStatus.MEMBER,
+            ]:
                 return False
         except UserNotParticipant:
             return False
@@ -66,11 +80,12 @@ async def get_messages(client, message_ids):
                 chat_id=client.db_channel.id, message_ids=temb_ids
             )
         except FloodWait as e:
-            await asyncio.sleep(e.x)
+            await asyncio.sleep(e.value)
             msgs = await client.get_messages(
                 chat_id=client.db_channel.id, message_ids=temb_ids
             )
-        except BaseException:
+        except Exception as e:
+            LOGGER(__name__).error(f"Error: {e}")
             pass
         total_messages += len(temb_ids)
         messages.extend(msgs)
@@ -82,7 +97,7 @@ async def get_message_id(client, message):
         message.forward_from_chat
         and message.forward_from_chat.id == client.db_channel.id
     ):
-        return message.forward_from_message_id
+        return message.forward_from_message.id
     elif message.forward_from_chat or message.forward_sender_name or not message.text:
         return 0
     else:

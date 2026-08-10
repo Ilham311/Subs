@@ -2,7 +2,7 @@ from pyrogram import filters
 from pyrogram.types import Message
 from bot import Bot
 from config import ADMINS
-from database.db import update_settings, ban_user, unban_user, add_fsub, del_fsub
+from database.db import update_settings, ban_user, unban_user
 
 
 @Bot.on_message(filters.command("setstart") & filters.user(ADMINS))
@@ -51,50 +51,28 @@ async def unban_cmd(client: Bot, message: Message):
         await message.reply_text(f"Error: {e}")
 
 
-@Bot.on_message(filters.command("addfsub") & filters.user(ADMINS))
-async def add_fsub_cmd(client: Bot, message: Message):
-    if len(message.command) < 2:
-        return await message.reply_text(
-            "Penggunaan: `/addfsub [chat_id]`\nPastikan bot sudah menjadi admin di chat tersebut."
-        )
-    try:
-        chat_id = int(message.command[1])
-        chat_info = await client.get_chat(chat_id)
-        link = chat_info.invite_link
-        if not link:
-            link = await client.export_chat_invite_link(chat_id)
-
-        added = await add_fsub(chat_id, link, chat_info.title)
-        if added:
-            await message.reply_text(
-                f"Berhasil menambahkan {chat_info.title} ke daftar Force Sub!"
-            )
-        else:
-            await message.reply_text("Chat ini sudah ada di daftar Force Sub.")
-    except Exception as e:
-        await message.reply_text(f"Error: Gagal mendapatkan info chat. {e}")
-
-
-@Bot.on_message(filters.command("delfsub") & filters.user(ADMINS))
-async def del_fsub_cmd(client: Bot, message: Message):
-    if len(message.command) < 2:
-        return await message.reply_text("Penggunaan: `/delfsub [chat_id]`")
-    try:
-        chat_id = int(message.command[1])
-        deleted = await del_fsub(chat_id)
-        if deleted:
-            await message.reply_text(
-                f"Berhasil menghapus {chat_id} dari daftar Force Sub."
-            )
-        else:
-            await message.reply_text("Chat tidak ditemukan di daftar Force Sub.")
-    except Exception as e:
-        await message.reply_text(f"Error: {e}")
-
-
 @Bot.on_chat_join_request()
 async def auto_approve(client: Bot, message):
     try:
         await client.approve_chat_join_request(message.chat.id, message.from_user.id)
     except Exception:
         pass
+
+
+@Bot.on_message(filters.command("setdelete") & filters.user(ADMINS))
+async def set_delete_cmd(client: Bot, message: Message):
+    if len(message.command) < 2:
+        return await message.reply_text(
+            "Penggunaan: `/setdelete [detik]`\nKetik `/setdelete 0` untuk menonaktifkan."
+        )
+    try:
+        detik = int(message.command[1])
+        await update_settings("auto_delete_time", detik)
+        if detik > 0:
+            await message.reply_text(f"Auto-delete berhasil diatur ke {detik} detik.")
+        else:
+            await message.reply_text("Auto-delete berhasil dinonaktifkan.")
+    except ValueError:
+        await message.reply_text("Harap masukkan angka yang valid.")
+    except Exception as e:
+        await message.reply_text(f"Error: {e}")

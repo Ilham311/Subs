@@ -1,9 +1,8 @@
-
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from bot import Bot
-from config import ADMINS
+from config import ADMINS, LOGGER
 from helper_func import encode, get_message_id
 
 
@@ -17,7 +16,8 @@ async def batch(client: Client, message: Message):
                 filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
                 timeout=60,
             )
-        except BaseException:
+        except Exception as e:
+            LOGGER(__name__).error(f"Error: {e}")
             return
         f_msg_id = await get_message_id(client, first_message)
         if f_msg_id:
@@ -36,7 +36,8 @@ async def batch(client: Client, message: Message):
                 filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
                 timeout=60,
             )
-        except BaseException:
+        except Exception as e:
+            LOGGER(__name__).error(f"Error: {e}")
             return
         s_msg_id = await get_message_id(client, second_message)
         if s_msg_id:
@@ -76,7 +77,8 @@ async def link_generator(client: Client, message: Message):
                 filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
                 timeout=60,
             )
-        except BaseException:
+        except Exception as e:
+            LOGGER(__name__).error(f"Error: {e}")
             return
         msg_id = await get_message_id(client, channel_message)
         if msg_id:

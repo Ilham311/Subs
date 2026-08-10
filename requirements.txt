@@ -1,10 +1,11 @@
 feedparser
 gitpython
 heroku3
-pyrogram==1.4.16
+pyrogram==2.0.106
 python-dotenv
-Pyromod==1.5
+pyromod==2.1.0
 speedtest-cli
 TgCrypto
 wget
-motor==2.5.1
+motor==3.3.2
+dnspython
