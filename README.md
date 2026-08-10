@@ -11,13 +11,13 @@ Bot Telegram modern untuk menyimpan Posting atau File yang dapat Diakses melalui
 
 ### Setup (Deploy via Docker)
 1. Install Docker & Docker-Compose di VPS.
-2. Edit file `config.env` dan isikan konfigurasi bot (Token, API, MongoDB URL).
+2. Edit file `.env` dan isikan konfigurasi bot (Token, API, MongoDB URL).
 3. Jalankan perintah:
 ```bash
 docker-compose up -d --build
 ```
 
-### Variabel Lingkungan (`config.env`)
+### Variabel Lingkungan (`.env`)
 - `API_HASH`: API HASH (my.telegram.org)
 - `APP_ID`: APP ID (my.telegram.org)
 - `TG_BOT_TOKEN`: Dari BotFather

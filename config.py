@@ -15,19 +15,19 @@ def strtobool(val):
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 
-load_dotenv("config.env")
+load_dotenv(".env")
 
 # Bot token dari @Botfather
 TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "")
 
 # API ID Anda dari my.telegram.org
-APP_ID = int(os.environ.get("APP_ID", ""))
+APP_ID = int(os.environ.get("APP_ID") or 0)
 
 # API Hash Anda dari my.telegram.org
 API_HASH = os.environ.get("API_HASH", "")
 
 # ID Channel Database
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID", ""))
+CHANNEL_ID = int(os.environ.get("CHANNEL_ID") or 0)
 
 # NAMA OWNER
 OWNER = os.environ.get("OWNER", "owner")
@@ -49,10 +49,10 @@ FORCE_SUB_1 = os.environ.get("FORCE_SUB_1", "0")
 FORCE_SUB_2 = os.environ.get("FORCE_SUB_2", "0")
 
 # ID dari Channel Atau Group Untuk Wajib Subscribenya
-FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "0"))
-FORCE_SUB_GROUP = int(os.environ.get("FORCE_SUB_GROUP", "0"))
+FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL") or 0)
+FORCE_SUB_GROUP = int(os.environ.get("FORCE_SUB_GROUP") or 0)
 
-TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "4"))
+TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS") or 4)
 
 # Pesan Awalan /start
 START_MSG = os.environ.get(
