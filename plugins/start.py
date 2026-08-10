@@ -4,6 +4,7 @@ from time import time
 
 from bot import Bot
 from config import (
+    LOGGER,
     ADMINS,
     CUSTOM_CAPTION,
     DISABLE_CHANNEL_BUTTON,
@@ -12,9 +13,9 @@ from config import (
     START_MSG,
 )
 from database.db import add_user, get_all_users, get_settings, is_banned
-from pyrogram import filters
+from pyrogram import filters, enums
 from pyrogram.errors import FloodWait, InputUserDeactivated, UserIsBlocked
-from pyrogram.types import InlineKeyboardMarkup, Message
+from pyrogram.types import InlineKeyboardMarkup, Message, InlineKeyboardButton
 
 from helper_func import decode, get_messages, subsall
 
@@ -57,7 +58,8 @@ async def start_command(client: Bot, message: Message):
     if len(text) > 7:
         try:
             base64_string = text.split(" ", 1)[1]
-        except BaseException:
+        except Exception as e:
+            LOGGER(__name__).error(f"Error: {e}")
             return
         string = await decode(base64_string)
         argument = string.split("-")
@@ -65,7 +67,8 @@ async def start_command(client: Bot, message: Message):
             try:
                 start = int(int(argument[1]) / abs(client.db_channel.id))
                 end = int(int(argument[2]) / abs(client.db_channel.id))
-            except BaseException:
+            except Exception as e:
+                LOGGER(__name__).error(f"Error: {e}")
                 return
             if start <= end:
                 ids = range(start, end + 1)
@@ -80,15 +83,21 @@ async def start_command(client: Bot, message: Message):
         elif len(argument) == 2:
             try:
                 ids = [int(int(argument[1]) / abs(client.db_channel.id))]
-            except BaseException:
+            except Exception as e:
+                LOGGER(__name__).error(f"Error: {e}")
                 return
         temp_msg = await message.reply("<code>Tunggu Sebentar...</code>")
         try:
             messages = await get_messages(client, ids)
-        except BaseException:
+        except Exception as e:
+            LOGGER(__name__).error(f"Error: {e}")
             await message.reply_text("<b>Telah Terjadi Error </b>🥺")
             return
         await temp_msg.delete()
+
+        settings = await get_settings()
+        auto_delete_time = settings.get("auto_delete_time", 0)
+        sent_messages = []
 
         for msg in messages:
 
@@ -103,25 +112,61 @@ async def start_command(client: Bot, message: Message):
 
             reply_markup = msg.reply_markup if DISABLE_CHANNEL_BUTTON else None
             try:
-                await msg.copy(
+                s_msg = await msg.copy(
                     chat_id=message.from_user.id,
                     caption=caption,
-                    parse_mode="html",
+                    parse_mode=enums.ParseMode.HTML,
                     protect_content=PROTECT_CONTENT,
                     reply_markup=reply_markup,
                 )
+                sent_messages.append(s_msg)
                 await asyncio.sleep(0.5)
             except FloodWait as e:
-                await asyncio.sleep(e.x)
-                await msg.copy(
+                await asyncio.sleep(e.value)
+                s_msg = await msg.copy(
                     chat_id=message.from_user.id,
                     caption=caption,
-                    parse_mode="html",
+                    parse_mode=enums.ParseMode.HTML,
                     protect_content=PROTECT_CONTENT,
                     reply_markup=reply_markup,
                 )
-            except BaseException:
+                sent_messages.append(s_msg)
+            except Exception as e:
+                LOGGER(__name__).error(f"Error: {e}")
                 pass
+
+        if auto_delete_time > 0 and sent_messages:
+
+            async def delete_msgs(msgs, delay_time):
+                await asyncio.sleep(delay_time)
+                for m in msgs:
+                    try:
+                        await m.delete()
+                    except Exception:
+                        pass
+
+            asyncio.create_task(delete_msgs(sent_messages, auto_delete_time))
+
+            try:
+                bot_username = client.username
+                await message.reply_text(
+                    f"⚠️ <b>Peringatan:</b> Pesan di atas akan dihapus otomatis dalam waktu {auto_delete_time} detik.\n\nSilahkan forward atau simpan file jika diperlukan.",
+                    reply_markup=InlineKeyboardMarkup(
+                        [
+                            [
+                                InlineKeyboardButton(
+                                    "Dapatkan Ulang File",
+                                    url=f"https://t.me/{bot_username}?start={base64_string}",
+                                )
+                            ]
+                        ]
+                    ),
+                    quote=True,
+                )
+            except Exception as e:
+                LOGGER(__name__).error(f"Error sending auto-delete warning: {e}")
+                pass
+
     else:
         out = await start_button(client)
         settings = await get_settings()
@@ -211,22 +256,35 @@ async def send_text(client: Bot, message: Message):
                     await broadcast_msg.copy(chat_id, protect_content=PROTECT_CONTENT)
                     successful += 1
                 except FloodWait as e:
-                    await asyncio.sleep(e.x)
+                    await asyncio.sleep(e.value)
                     await broadcast_msg.copy(chat_id, protect_content=PROTECT_CONTENT)
                     successful += 1
                 except UserIsBlocked:
                     blocked += 1
+                    try:
+                        from database.db import delete_user
+
+                        await delete_user(chat_id)
+                    except Exception:
+                        pass
                 except InputUserDeactivated:
                     deleted += 1
-                except BaseException:
+                    try:
+                        from database.db import delete_user
+
+                        await delete_user(chat_id)
+                    except Exception:
+                        pass
+                except Exception as e:
+                    LOGGER(__name__).error(f"Error: {e}")
                     unsuccessful += 1
 
         status = f"""<b><u>Laporan Broadcast Selesai</u>
 Total Pengguna: <code>{total}</code>
 Berhasil Terkirim: <code>{successful}</code>
 Gagal Terkirim: <code>{unsuccessful}</code>
-User Memblokir Bot: <code>{blocked}</code>
-Akun Terhapus: <code>{deleted}</code></b>"""
+User Memblokir Bot (Dihapus dari DB): <code>{blocked}</code>
+Akun Terhapus (Dihapus dari DB): <code>{deleted}</code></b>"""
         return await pls_wait.edit(status)
     else:
         msg = await message.reply(

@@ -1,6 +1,17 @@
 import logging
 import os
-from distutils.util import strtobool
+
+
+def strtobool(val):
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return 1
+    elif val in ("n", "no", "f", "false", "off", "0"):
+        return 0
+    else:
+        raise ValueError(f"invalid truth value {val!r}")
+
+
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 
@@ -33,6 +44,9 @@ UPSTREAM_BRANCH = os.environ.get("UPSTREAM_BRANCH", "master")
 
 # Database
 DB_URI = os.environ.get("DATABASE_URL", "")
+
+FORCE_SUB_1 = os.environ.get("FORCE_SUB_1", "0")
+FORCE_SUB_2 = os.environ.get("FORCE_SUB_2", "0")
 
 # ID dari Channel Atau Group Untuk Wajib Subscribenya
 FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "0"))

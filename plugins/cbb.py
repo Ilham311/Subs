@@ -1,6 +1,5 @@
-
 from bot import Bot
-from config import OWNER
+from config import OWNER, LOGGER
 from Data import Data
 from pyrogram import filters
 from pyrogram.errors import MessageNotModified
@@ -51,5 +50,6 @@ async def cb_handler(client: Bot, query: CallbackQuery):
         await query.message.delete()
         try:
             await query.message.reply_to_message.delete()
-        except BaseException:
+        except Exception as e:
+            LOGGER(__name__).error(f"Error: {e}")
             pass

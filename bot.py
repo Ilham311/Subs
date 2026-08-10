@@ -1,7 +1,7 @@
 import pyromod.listen
 import sys
 
-from pyrogram import Client
+from pyrogram import Client, enums
 
 from config import (
     API_HASH,
@@ -60,7 +60,7 @@ class Bot(Client):
             self.LOGGER(__name__).info("Bot Berhenti. Cek konfigurasi Anda.")
             sys.exit()
 
-        self.set_parse_mode("html")
+        self.set_parse_mode(enums.ParseMode.HTML)
         self.LOGGER(__name__).info(
             f"[🔥 BERHASIL DIAKTIFKAN! 🔥]\n\nBot dijalankan oleh @{OWNER}"
         )

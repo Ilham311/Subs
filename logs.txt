@@ -1,0 +1,4 @@
+[ERROR] - database.db - Failed to connect to MongoDB: Empty host (or extra comma in host list).
+[ERROR] - database.db - Failed to connect to MongoDB: Empty host (or extra comma in host list).
+[ERROR] - database.db - Failed to connect to MongoDB: Empty host (or extra comma in host list).
+[ERROR] - database.db - Failed to connect to MongoDB: Empty host (or extra comma in host list).

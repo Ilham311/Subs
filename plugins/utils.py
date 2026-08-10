@@ -1,8 +1,8 @@
-
 import os
 
 from bot import Bot
 from config import (
+    LOGGER,
     ADMINS,
     API_HASH,
     APP_ID,
@@ -45,9 +45,9 @@ async def varsFunc(client: Bot, message: Message):
     Man = await message.reply_text("Tunggu Sebentar...")
     text = f"""<u><b>CONFIG VARS</b></u> @{client.username}
 APP_ID = <code>{APP_ID}</code>
-API_HASH = <code>{API_HASH}</code>
-TG_BOT_TOKEN = <code>{TG_BOT_TOKEN}</code>
-DATABASE_URL = <code>{DB_URI}</code>
+API_HASH = <code>{API_HASH[:4]}***{API_HASH[-4:]}</code>
+TG_BOT_TOKEN = <code>{TG_BOT_TOKEN[:4]}***{TG_BOT_TOKEN[-4:]}</code>
+DATABASE_URL = <code>{DB_URI[:4]}***{DB_URI[-4:]}</code>
 OWNER = <code>{OWNER}</code>
 ADMINS = <code>{ADMINS}</code>
     
