@@ -2,6 +2,32 @@ import logging
 import os
 
 
+def get_int_env(key, default=None):
+    val = os.environ.get(key)
+    if not val and default is not None:
+        return default
+    if not val:
+        raise ValueError(f"Environment variable {key} is required and cannot be empty.")
+    try:
+        return int(val)
+    except ValueError:
+        raise ValueError(f"Environment variable {key} must be an integer, got '{val}'.")
+
+
+def normalize_chat_id(value):
+    if not value or value == "0":
+        return None
+    value = str(value).strip()
+    if value.startswith("@") or not value.lstrip("-").isdigit():
+        return f"@{value.lstrip('@')}"
+    if not value.startswith("-100"):
+        if value.startswith("-"):
+            return int(f"-100{value[1:]}")
+        else:
+            return int(f"-100{value}")
+    return int(value)
+
+
 def strtobool(val):
     val = val.lower()
     if val in ("y", "yes", "t", "true", "on", "1"):
@@ -21,13 +47,13 @@ load_dotenv(".env")
 TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "")
 
 # API ID Anda dari my.telegram.org
-APP_ID = int(os.environ.get("APP_ID") or 0)
+APP_ID = get_int_env("APP_ID")
 
 # API Hash Anda dari my.telegram.org
 API_HASH = os.environ.get("API_HASH", "")
 
 # ID Channel Database
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID") or 0)
+CHANNEL_ID = normalize_chat_id(os.environ.get("CHANNEL_ID"))
 
 # NAMA OWNER
 OWNER = os.environ.get("OWNER", "owner")
@@ -44,6 +70,7 @@ UPSTREAM_BRANCH = os.environ.get("UPSTREAM_BRANCH", "master")
 
 import urllib.parse
 
+
 def escape_db_uri(uri):
     if not uri:
         return uri
@@ -56,7 +83,7 @@ def escape_db_uri(uri):
     else:
         return uri
 
-    rest = uri[len(prefix):]
+    rest = uri[len(prefix) :]
 
     end_of_host = rest.find("/")
     if end_of_host == -1:
@@ -79,7 +106,7 @@ def escape_db_uri(uri):
         escaped_credentials = user
     else:
         user = credentials[:colon_idx]
-        password = credentials[colon_idx+1:]
+        password = credentials[colon_idx + 1 :]
         user = urllib.parse.quote_plus(urllib.parse.unquote(user))
         password = urllib.parse.quote_plus(urllib.parse.unquote(password))
         escaped_credentials = f"{user}:{password}"
@@ -91,17 +118,18 @@ def escape_db_uri(uri):
     else:
         return f"{prefix}{escaped_host_part}{rest[end_of_host:]}"
 
+
 # Database
 DB_URI = escape_db_uri(os.environ.get("DATABASE_URL", ""))
 
-FORCE_SUB_1 = os.environ.get("FORCE_SUB_1", "0")
-FORCE_SUB_2 = os.environ.get("FORCE_SUB_2", "0")
+FORCE_SUB_1 = normalize_chat_id(os.environ.get("FORCE_SUB_1"))
+FORCE_SUB_2 = normalize_chat_id(os.environ.get("FORCE_SUB_2"))
 
 # ID dari Channel Atau Group Untuk Wajib Subscribenya
-FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL") or 0)
-FORCE_SUB_GROUP = int(os.environ.get("FORCE_SUB_GROUP") or 0)
+FORCE_SUB_CHANNEL = normalize_chat_id(os.environ.get("FORCE_SUB_CHANNEL"))
+FORCE_SUB_GROUP = normalize_chat_id(os.environ.get("FORCE_SUB_GROUP"))
 
-TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS") or 4)
+TG_BOT_WORKERS = get_int_env("TG_BOT_WORKERS", 4)
 
 # Pesan Awalan /start
 START_MSG = os.environ.get(

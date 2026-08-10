@@ -5,11 +5,41 @@ from config import DB_URI, START_MSG, FORCE_MSG
 # Connect to MongoDB
 import logging
 
+import sys
+
 try:
-    client = AsyncIOMotorClient(DB_URI)
+    client = AsyncIOMotorClient(DB_URI, serverSelectionTimeoutMS=5000)
+
+    async def _ping():
+        try:
+            await client.admin.command("ping")
+        except Exception as e:
+            logging.getLogger(__name__).error(
+                f"Failed to ping MongoDB: {e}. Check if URL is correct, IP is whitelisted, or password is valid."
+            )
+            sys.exit(1)
+
+    def _run_ping():
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        if loop.is_running():
+            loop.create_task(_ping())
+        else:
+            loop.run_until_complete(_ping())
+
+    _run_ping()
+
     db = client["force_subs_bot"]
+except SystemExit:
+    db = None
 except Exception as e:
-    logging.getLogger(__name__).error(f"Failed to connect to MongoDB: {e}")
+    logging.getLogger(__name__).error(
+        f"Failed to connect to MongoDB: {e}. Check if URL is correct, IP is whitelisted, or password is valid."
+    )
     db = None
 
 # Collections
