@@ -42,8 +42,57 @@ HEROKU_API_KEY = os.environ.get("HEROKU_API_KEY", None)
 # Custom Repo for updater.
 UPSTREAM_BRANCH = os.environ.get("UPSTREAM_BRANCH", "master")
 
+import urllib.parse
+
+def escape_db_uri(uri):
+    if not uri:
+        return uri
+
+    prefix = ""
+    if uri.startswith("mongodb://"):
+        prefix = "mongodb://"
+    elif uri.startswith("mongodb+srv://"):
+        prefix = "mongodb+srv://"
+    else:
+        return uri
+
+    rest = uri[len(prefix):]
+
+    end_of_host = rest.find("/")
+    if end_of_host == -1:
+        end_of_host = rest.find("?")
+
+    if end_of_host == -1:
+        host_part = rest
+    else:
+        host_part = rest[:end_of_host]
+
+    at_idx = host_part.rfind("@")
+    if at_idx == -1:
+        return uri
+
+    credentials = host_part[:at_idx]
+
+    colon_idx = credentials.find(":")
+    if colon_idx == -1:
+        user = urllib.parse.quote_plus(urllib.parse.unquote(credentials))
+        escaped_credentials = user
+    else:
+        user = credentials[:colon_idx]
+        password = credentials[colon_idx+1:]
+        user = urllib.parse.quote_plus(urllib.parse.unquote(user))
+        password = urllib.parse.quote_plus(urllib.parse.unquote(password))
+        escaped_credentials = f"{user}:{password}"
+
+    escaped_host_part = f"{escaped_credentials}@{host_part[at_idx+1:]}"
+
+    if end_of_host == -1:
+        return f"{prefix}{escaped_host_part}"
+    else:
+        return f"{prefix}{escaped_host_part}{rest[end_of_host:]}"
+
 # Database
-DB_URI = os.environ.get("DATABASE_URL", "")
+DB_URI = escape_db_uri(os.environ.get("DATABASE_URL", ""))
 
 FORCE_SUB_1 = os.environ.get("FORCE_SUB_1", "0")
 FORCE_SUB_2 = os.environ.get("FORCE_SUB_2", "0")
