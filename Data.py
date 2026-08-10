@@ -1,8 +1,5 @@
-# Credits: @mrismanaziz
-# FROM File-Sharing-Man <https://github.com/mrismanaziz/File-Sharing-Man/>
-# t.me/SharingUserbot & t.me/Lunatic0de
-
 from pyrogram.types import InlineKeyboardButton
+
 
 class Data:
     HELP = """
@@ -21,26 +18,22 @@ class Data:
  ├ /getvar - Untuk melihat salah satu var dengan command dibot
  ├ /users - Untuk melihat statistik pengguna bot
  ├ /batch - Untuk membuat link lebih dari satu file
- └ /broadcast - Untuk mengirim pesan broadcast ke pengguna bot
-
-👨‍💻 Develoved by @pocongonlen</b>
+ └ /broadcast - Untuk mengirim pesan broadcast ke pengguna bot</b>
 """
 
-    close = [
-        [InlineKeyboardButton("close", callback_data="close")]
-    ]
+    close = [[InlineKeyboardButton("close", callback_data="close")]]
 
     mbuttons = [
         [
             InlineKeyboardButton("help & command", callback_data="help"),
-            InlineKeyboardButton("close", callback_data="close")
+            InlineKeyboardButton("close", callback_data="close"),
         ],
     ]
 
     buttons = [
         [
             InlineKeyboardButton("about me", callback_data="about"),
-            InlineKeyboardButton("close", callback_data="close")
+            InlineKeyboardButton("close", callback_data="close"),
         ],
     ]
 
@@ -49,9 +42,5 @@ class Data:
 
 @{} adalah Bot Telegram untuk menyimpan Postingan atau File yang dapat Diakses melalui Link Khusus.
 
- • Creator: @{}
- • Jasa Pembuatan Bot: <a href='https://t.me/PoocongOnlen/182'>Pocongonlenstore v4</a>
- • Owner Repo: @kyyyynocounter
-
-👨‍💻 Develoved by @pocongonlen</b>
+ • Owner: @{}</b>
 """

@@ -1,7 +1,3 @@
-# (©)Codexbotz
-# Recode by @mrismanaziz
-# t.me/SharingUserbot & t.me/Lunatic0de
-
 import asyncio
 from datetime import datetime
 from time import time
@@ -15,12 +11,12 @@ from config import (
     PROTECT_CONTENT,
     START_MSG,
 )
-from database.sql import add_user, full_userbase, query_msg
+from database.db import add_user, get_all_users, get_settings, is_banned
 from pyrogram import filters
 from pyrogram.errors import FloodWait, InputUserDeactivated, UserIsBlocked
 from pyrogram.types import InlineKeyboardMarkup, Message
 
-from helper_func import decode, get_messages, subsall, subsch, subsgc
+from helper_func import decode, get_messages, subsall
 
 from .button import fsub_button, start_button
 
@@ -46,14 +42,12 @@ async def _human_time_duration(seconds):
     return ", ".join(parts)
 
 
-@Bot.on_message(filters.command("start") & filters.private & subsall & subsch & subsgc)
+@Bot.on_message(filters.command("start") & filters.private & subsall)
 async def start_command(client: Bot, message: Message):
     id = message.from_user.id
-    user_name = (
-        f"@{message.from_user.username}"
-        if message.from_user.username
-        else None
-    )
+    if await is_banned(id):
+        return await message.reply("Anda telah dibanned dari menggunakan bot ini.")
+    user_name = f"@{message.from_user.username}" if message.from_user.username else None
 
     try:
         await add_user(id, user_name)
@@ -129,14 +123,18 @@ async def start_command(client: Bot, message: Message):
             except BaseException:
                 pass
     else:
-        out = start_button(client)
+        out = await start_button(client)
+        settings = await get_settings()
+        start_msg = settings.get("start_msg", START_MSG)
         await message.reply_text(
-            text=START_MSG.format(
+            text=start_msg.format(
                 first=message.from_user.first_name,
                 last=message.from_user.last_name,
-                username=f"@{message.from_user.username}"
-                if message.from_user.username
-                else None,
+                username=(
+                    f"@{message.from_user.username}"
+                    if message.from_user.username
+                    else None
+                ),
                 mention=message.from_user.mention,
                 id=message.from_user.id,
             ),
@@ -145,20 +143,24 @@ async def start_command(client: Bot, message: Message):
             quote=True,
         )
 
-
     return
 
 
 @Bot.on_message(filters.command("start") & filters.private)
 async def not_joined(client: Bot, message: Message):
-    buttons = fsub_button(client, message)
+    if await is_banned(message.from_user.id):
+        return await message.reply("Anda telah dibanned dari menggunakan bot ini.")
+
+    buttons = await fsub_button(client, message)
+    settings = await get_settings()
+    force_msg = settings.get("force_msg", FORCE_MSG)
     await message.reply(
-        text=FORCE_MSG.format(
+        text=force_msg.format(
             first=message.from_user.first_name,
             last=message.from_user.last_name,
-            username=f"@{message.from_user.username}"
-            if message.from_user.username
-            else None,
+            username=(
+                f"@{message.from_user.username}" if message.from_user.username else None
+            ),
             mention=message.from_user.mention,
             id=message.from_user.id,
         ),
@@ -169,30 +171,41 @@ async def not_joined(client: Bot, message: Message):
 
 
 @Bot.on_message(filters.command(["users", "stats"]) & filters.user(ADMINS))
-async def get_users(client: Bot, message: Message):
+async def get_users_stats(client: Bot, message: Message):
     msg = await client.send_message(
         chat_id=message.chat.id, text="<code>Processing ...</code>"
     )
-    users = await full_userbase()
+    users = await get_all_users()
     await msg.edit(f"{len(users)} <b>Pengguna menggunakan bot ini</b>")
 
 
 @Bot.on_message(filters.command("broadcast") & filters.user(ADMINS))
 async def send_text(client: Bot, message: Message):
     if message.reply_to_message:
-        query = await query_msg()
+        users = await get_all_users()
         broadcast_msg = message.reply_to_message
-        total = 0
+        total = len(users)
         successful = 0
         blocked = 0
         deleted = 0
         unsuccessful = 0
+        current = 0
 
         pls_wait = await message.reply(
-            "<code>Broadcasting Message Tunggu Sebentar...</code>"
+            "<code>[~] Broadcasting Message Tunggu Sebentar...</code>"
         )
-        for row in query:
-            chat_id = int(row[0])
+
+        for row in users:
+            chat_id = int(row["id"])
+            current += 1
+            if current % 20 == 0:
+                try:
+                    await pls_wait.edit(
+                        f"<code>[~] Broadcasting... {current}/{total} users processed.</code>"
+                    )
+                except Exception:
+                    pass
+
             if chat_id not in ADMINS:
                 try:
                     await broadcast_msg.copy(chat_id, protect_content=PROTECT_CONTENT)
@@ -207,19 +220,19 @@ async def send_text(client: Bot, message: Message):
                     deleted += 1
                 except BaseException:
                     unsuccessful += 1
-                total += 1
-        status = f"""<b><u>Berhasil Broadcast</u>
-Jumlah Pengguna: <code>{total}</code>
-Berhasil: <code>{successful}</code>
-Gagal: <code>{unsuccessful}</code>
-Pengguna diblokir: <code>{blocked}</code>
+
+        status = f"""<b><u>Laporan Broadcast Selesai</u>
+Total Pengguna: <code>{total}</code>
+Berhasil Terkirim: <code>{successful}</code>
+Gagal Terkirim: <code>{unsuccessful}</code>
+User Memblokir Bot: <code>{blocked}</code>
 Akun Terhapus: <code>{deleted}</code></b>"""
         return await pls_wait.edit(status)
     else:
         msg = await message.reply(
-            "<code>Gunakan Perintah ini Harus Sambil Reply ke pesan telegram yang ingin di Broadcast.</code>"
+            "<code>Harap reply ke pesan yang ingin di broadcast!</code>"
         )
-        await asyncio.sleep(8)
+        await asyncio.sleep(5)
         await msg.delete()
 
 
