@@ -6,6 +6,7 @@ from pyrogram.errors import FloodWait, UserNotParticipant
 from config import ADMINS
 from database.db import get_fsubs
 
+
 async def check_fsub(client, user_id):
     if user_id in ADMINS:
         return True
@@ -16,7 +17,9 @@ async def check_fsub(client, user_id):
 
     for fsub in fsubs:
         try:
-            member = await client.get_chat_member(chat_id=fsub['chat_id'], user_id=user_id)
+            member = await client.get_chat_member(
+                chat_id=fsub["chat_id"], user_id=user_id
+            )
             if member.status not in ["creator", "administrator", "member"]:
                 return False
         except UserNotParticipant:
@@ -27,11 +30,14 @@ async def check_fsub(client, user_id):
 
     return True
 
+
 async def is_subscribed(filter, client, update):
     user_id = update.from_user.id
     return await check_fsub(client, user_id)
 
+
 subsall = filters.create(is_subscribed)
+
 
 async def encode(string):
     string_bytes = string.encode("ascii")
@@ -39,10 +45,13 @@ async def encode(string):
     base64_string = (base64_bytes.decode("ascii")).strip("=")
     return base64_string
 
+
 async def decode(base64_string):
-    base64_string = base64_string.strip("=") # links generated before this commit will be having = sign, hence striping them to handle padding errors.
+    base64_string = base64_string.strip(
+        "="
+    )  # links generated before this commit will be having = sign, hence striping them to handle padding errors.
     base64_bytes = (base64_string + "=" * (-len(base64_string) % 4)).encode("ascii")
-    string_bytes = base64.urlsafe_b64decode(base64_bytes) 
+    string_bytes = base64.urlsafe_b64decode(base64_bytes)
     string = string_bytes.decode("ascii")
     return string
 

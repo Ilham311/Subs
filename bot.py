@@ -1,7 +1,3 @@
-# (©)Codexbotz
-# Recode by @mrismanaziz
-# t.me/SharingUserbot & t.me/Lunatic0de
-
 import pyromod.listen
 import sys
 
@@ -43,16 +39,15 @@ class Bot(Client):
             )
         except Exception as a:
             self.LOGGER(__name__).warning(a)
-            self.LOGGER(__name__).info(
-                "Bot Berhenti. Gabung Group https://t.me/PocongUserbot untuk Bantuan"
-            )
+            self.LOGGER(__name__).info("Bot Berhenti. Cek konfigurasi Anda.")
             sys.exit()
-
 
         try:
             db_channel = await self.get_chat(CHANNEL_ID)
             self.db_channel = db_channel
-            test = await self.send_message(chat_id=db_channel.id, text="Test Message", disable_notification=True)
+            test = await self.send_message(
+                chat_id=db_channel.id, text="Test Message", disable_notification=True
+            )
             await test.delete()
             self.LOGGER(__name__).info(
                 f"CHANNEL_ID Database detected!\n┌ Title: {db_channel.title}\n└ Chat ID: {db_channel.id}\n——"
@@ -62,14 +57,12 @@ class Bot(Client):
             self.LOGGER(__name__).warning(
                 f"Pastikan @{self.username} adalah admin di Channel DataBase anda, CHANNEL_ID Saat Ini: {CHANNEL_ID}"
             )
-            self.LOGGER(__name__).info(
-                "Bot Berhenti. Gabung Group https://t.me/PocongUserbot untuk Bantuan"
-            )
+            self.LOGGER(__name__).info("Bot Berhenti. Cek konfigurasi Anda.")
             sys.exit()
 
         self.set_parse_mode("html")
         self.LOGGER(__name__).info(
-            f"[🔥 BERHASIL DIAKTIFKAN! 🔥]\n\nBOT Dibuat oleh @{OWNER}\nJika @{OWNER} Membutuhkan Bantuan, Silahkan Tanyakan di Grup https://t.me/PocongUserbot"
+            f"[🔥 BERHASIL DIAKTIFKAN! 🔥]\n\nBot dijalankan oleh @{OWNER}"
         )
 
     async def stop(self, *args):
