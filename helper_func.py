@@ -6,16 +6,20 @@ from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import FloodWait, UserNotParticipant
 from config import ADMINS, LOGGER
 from config import FORCE_SUB_1, FORCE_SUB_2
+from database.db import get_settings
 
 
 async def check_fsub(client, user_id):
     if user_id in ADMINS:
         return True
 
-    fsubs = []
-    if FORCE_SUB_1 and FORCE_SUB_1 != "0":
+    settings = await get_settings()
+    db_fsubs = settings.get("force_sub_channels", [])
+
+    fsubs = list(db_fsubs)
+    if FORCE_SUB_1 and FORCE_SUB_1 != "0" and FORCE_SUB_1 not in fsubs:
         fsubs.append(FORCE_SUB_1)
-    if FORCE_SUB_2 and FORCE_SUB_2 != "0":
+    if FORCE_SUB_2 and FORCE_SUB_2 != "0" and FORCE_SUB_2 not in fsubs:
         fsubs.append(FORCE_SUB_2)
 
     if not fsubs:
@@ -33,9 +37,9 @@ async def check_fsub(client, user_id):
                 return False
         except UserNotParticipant:
             return False
-        except Exception:
-            # Jika error lain (bot dikeluarkan dari channel, dll), anggap saja channel itu invalid, lanjut
-            continue
+        except Exception as e:
+            LOGGER(__name__).warning(f"Error pada saat mengecek member di channel {fsub_id}: {e}")
+            return False
 
     return True
 
@@ -81,9 +85,12 @@ async def get_messages(client, message_ids):
             )
         except Exception as e:
             LOGGER(__name__).error(f"Error: {e}")
-            pass
+            msgs = []
+
         total_messages += len(temb_ids)
-        messages.extend(msgs)
+        if msgs:
+            # Filter None to avoid adding invalid messages
+            messages.extend([msg for msg in msgs if msg is not None])
     return messages
 
 

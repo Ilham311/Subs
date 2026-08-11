@@ -1,8 +1,8 @@
 from pyrogram import filters
 from pyrogram.types import Message
 from bot import Bot
-from config import ADMINS
-from database.db import update_settings, ban_user, unban_user
+from config import ADMINS, normalize_chat_id
+from database.db import update_settings, get_settings, ban_user, unban_user
 
 
 @Bot.on_message(filters.command("setstart") & filters.user(ADMINS))
@@ -76,3 +76,39 @@ async def set_delete_cmd(client: Bot, message: Message):
         await message.reply_text("Harap masukkan angka yang valid.")
     except Exception as e:
         await message.reply_text(f"Error: {e}")
+
+
+@Bot.on_message(filters.command("addfsub") & filters.user(ADMINS))
+async def add_fsub_cmd(client: Bot, message: Message):
+    if len(message.command) < 2:
+        return await message.reply_text(
+            "Penggunaan: `/addfsub [chat_id/username]`"
+        )
+    chat_id = normalize_chat_id(message.command[1])
+
+    settings = await get_settings()
+    fsubs = settings.get("force_sub_channels", [])
+    if chat_id in fsubs:
+        return await message.reply_text("Channel tersebut sudah ada di daftar Wajib Subscribe.")
+
+    fsubs.append(chat_id)
+    await update_settings("force_sub_channels", fsubs)
+    await message.reply_text(f"Berhasil menambahkan {chat_id} ke daftar Wajib Subscribe.")
+
+
+@Bot.on_message(filters.command("delfsub") & filters.user(ADMINS))
+async def del_fsub_cmd(client: Bot, message: Message):
+    if len(message.command) < 2:
+        return await message.reply_text(
+            "Penggunaan: `/delfsub [chat_id/username]`"
+        )
+    chat_id = normalize_chat_id(message.command[1])
+
+    settings = await get_settings()
+    fsubs = settings.get("force_sub_channels", [])
+    if chat_id not in fsubs:
+        return await message.reply_text("Channel tersebut tidak ada di daftar Wajib Subscribe.")
+
+    fsubs.remove(chat_id)
+    await update_settings("force_sub_channels", fsubs)
+    await message.reply_text(f"Berhasil menghapus {chat_id} dari daftar Wajib Subscribe.")

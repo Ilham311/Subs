@@ -9,6 +9,8 @@ from config import (
     CHANNEL_ID,
     FORCE_SUB_CHANNEL,
     FORCE_SUB_GROUP,
+    FORCE_SUB_1,
+    FORCE_SUB_2,
     LOGGER,
     OWNER,
     TG_BOT_TOKEN,
@@ -69,8 +71,21 @@ class Bot(Client):
             sys.exit()
 
         self.set_parse_mode(enums.ParseMode.HTML)
+
+        # Log fsubs
+        from database.db import get_settings
+        settings = await get_settings()
+        fsubs = settings.get("force_sub_channels", [])
+
+        # also count FORCE_SUB_1 and FORCE_SUB_2 if they exist and are not in fsubs
+        active_fsubs = list(fsubs)
+        if FORCE_SUB_1 and FORCE_SUB_1 != "0" and FORCE_SUB_1 not in active_fsubs:
+            active_fsubs.append(FORCE_SUB_1)
+        if FORCE_SUB_2 and FORCE_SUB_2 != "0" and FORCE_SUB_2 not in active_fsubs:
+            active_fsubs.append(FORCE_SUB_2)
+
         self.LOGGER(__name__).info(
-            f"[🔥 BERHASIL DIAKTIFKAN! 🔥]\n\nBot dijalankan oleh @{OWNER}"
+            f"[🔥 BERHASIL DIAKTIFKAN! 🔥]\n\nBot: {self.namebot} (@{self.username})\nJumlah Force-Sub Aktif: {len(active_fsubs)}\nBot dijalankan oleh @{OWNER}"
         )
 
     async def stop(self, *args):

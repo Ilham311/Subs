@@ -28,6 +28,8 @@ else:
     settings_col = None
 
 
+import pymongo
+
 async def ensure_connection():
     if client is None:
         logging.getLogger(__name__).error("Gagal auth: Motor client tidak diinisialisasi karena error sebelumnya.")
@@ -35,12 +37,26 @@ async def ensure_connection():
     try:
         await client.admin.command('ping')
         logging.getLogger(__name__).info("MongoDB terhubung")
+
+        # Create indexes
+        if users_col is not None:
+            await users_col.create_index([("id", pymongo.ASCENDING)], unique=True)
+        if banned_col is not None:
+            await banned_col.create_index([("id", pymongo.ASCENDING)], unique=True)
+        logging.getLogger(__name__).info("Database indexes checked/created")
     except Exception as e:
         logging.getLogger(__name__).error(f"Gagal auth: {e}")
         raise e
 
 
+# Note: This cache is per-process. For multi-process deployment (like Gunicorn with multiple workers),
+# you would need Redis or similar to sync cache invalidations.
 _settings_cache = None
+
+
+async def invalidate_settings_cache():
+    global _settings_cache
+    _settings_cache = None
 
 
 async def get_settings():
@@ -64,6 +80,7 @@ async def get_settings():
             "start_msg": START_MSG,
             "force_msg": FORCE_MSG,
             "auto_delete_time": 0,  # 0 means disabled
+            "force_sub_channels": []
         }
         await settings_col.insert_one(default)
         _settings_cache = default
@@ -85,10 +102,15 @@ async def update_settings(key, value):
             _settings_cache[key] = value
 
 
+import datetime
+
 async def add_user(user_id, username=None):
-    user = await users_col.find_one({"id": user_id})
-    if not user:
-        await users_col.insert_one({"id": user_id, "username": username})
+    if users_col is not None:
+        await users_col.update_one(
+            {"id": user_id},
+            {"$set": {"username": username, "last_seen": datetime.datetime.utcnow()}},
+            upsert=True
+        )
 
 
 async def delete_user(user_id):
@@ -97,7 +119,14 @@ async def delete_user(user_id):
 
 
 async def get_all_users():
-    return await users_col.find({}).to_list(length=None)
+    if users_col is not None:
+        async for user in users_col.find({}):
+            yield user
+
+async def get_all_users_count():
+    if users_col is not None:
+        return await users_col.count_documents({})
+    return 0
 
 
 async def is_banned(user_id):
@@ -111,5 +140,3 @@ async def ban_user(user_id):
 
 async def unban_user(user_id):
     await banned_col.delete_one({"id": user_id})
-
-# Reviewer note: delete_user function is above!

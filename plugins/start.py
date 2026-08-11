@@ -12,7 +12,7 @@ from config import (
     PROTECT_CONTENT,
     START_MSG,
 )
-from database.db import add_user, get_all_users, get_settings, is_banned, delete_user
+from database.db import add_user, get_all_users, get_all_users_count, get_settings, is_banned, delete_user
 from pyrogram import filters, enums
 from pyrogram.errors import FloodWait, InputUserDeactivated, UserIsBlocked
 from pyrogram.types import InlineKeyboardMarkup, Message, InlineKeyboardButton
@@ -220,16 +220,15 @@ async def get_users_stats(client: Bot, message: Message):
     msg = await client.send_message(
         chat_id=message.chat.id, text="<code>Processing ...</code>"
     )
-    users = await get_all_users()
-    await msg.edit(f"{len(users)} <b>Pengguna menggunakan bot ini</b>")
+    total_users = await get_all_users_count()
+    await msg.edit(f"{total_users} <b>Pengguna menggunakan bot ini</b>")
 
 
 @Bot.on_message(filters.command("broadcast") & filters.user(ADMINS))
 async def send_text(client: Bot, message: Message):
     if message.reply_to_message:
-        users = await get_all_users()
+        total = await get_all_users_count()
         broadcast_msg = message.reply_to_message
-        total = len(users)
         successful = 0
         blocked = 0
         deleted = 0
@@ -240,10 +239,48 @@ async def send_text(client: Bot, message: Message):
             "<code>[~] Broadcasting Message Tunggu Sebentar...</code>"
         )
 
-        for row in users:
+        sem = asyncio.Semaphore(50)  # Limit concurrent broadcasts
+
+        async def send_msg(user_id):
+            nonlocal successful, blocked, deleted, unsuccessful
+            if user_id in ADMINS:
+                return
+            async with sem:
+                try:
+                    await broadcast_msg.copy(user_id, protect_content=PROTECT_CONTENT)
+                    successful += 1
+                except FloodWait as e:
+                    await asyncio.sleep(e.value)
+                    try:
+                        await broadcast_msg.copy(user_id, protect_content=PROTECT_CONTENT)
+                        successful += 1
+                    except Exception:
+                        unsuccessful += 1
+                except UserIsBlocked:
+                    blocked += 1
+                    try:
+                        await delete_user(user_id)
+                    except Exception:
+                        pass
+                except InputUserDeactivated:
+                    deleted += 1
+                    try:
+                        await delete_user(user_id)
+                    except Exception:
+                        pass
+                except Exception as e:
+                    LOGGER(__name__).error(f"Error: {e}")
+                    unsuccessful += 1
+
+        tasks = []
+        async for row in get_all_users():
             chat_id = int(row["id"])
             current += 1
-            if current % 20 == 0:
+            tasks.append(asyncio.create_task(send_msg(chat_id)))
+
+            if current % 100 == 0:
+                await asyncio.gather(*tasks)
+                tasks = []
                 try:
                     await pls_wait.edit(
                         f"<code>[~] Broadcasting... {current}/{total} users processed.</code>"
@@ -251,29 +288,8 @@ async def send_text(client: Bot, message: Message):
                 except Exception:
                     pass
 
-            if chat_id not in ADMINS:
-                try:
-                    await broadcast_msg.copy(chat_id, protect_content=PROTECT_CONTENT)
-                    successful += 1
-                except FloodWait as e:
-                    await asyncio.sleep(e.value)
-                    await broadcast_msg.copy(chat_id, protect_content=PROTECT_CONTENT)
-                    successful += 1
-                except UserIsBlocked:
-                    blocked += 1
-                    try:
-                        await delete_user(chat_id)
-                    except Exception:
-                        pass
-                except InputUserDeactivated:
-                    deleted += 1
-                    try:
-                        await delete_user(chat_id)
-                    except Exception:
-                        pass
-                except Exception as e:
-                    LOGGER(__name__).error(f"Error: {e}")
-                    unsuccessful += 1
+        if tasks:
+            await asyncio.gather(*tasks)
 
         status = f"""<b><u>Laporan Broadcast Selesai</u>
 Total Pengguna: <code>{total}</code>
