@@ -21,10 +21,10 @@ async def showid(client, message):
         _id = ""
         _id += f"<b>👥 Chat ID</b>: <code>{message.chat.id}</code>"
         if message.reply_to_message:
-            _id += f"<b>🙋‍♂️ Replied User ID</b>: <code>{message.reply_to_message.from_user.id}</code>"
+            _id += f"<b>🙋‍♂️ Replied User ID</b>: <code>{message.reply_to_message.from_user.id}</code>\n"
             file_info = get_file_id(message.reply_to_message)
         else:
-            _id += f"<b>👤 User ID</b>: <code>{message.from_user.id}</code>"
+            _id += f"<b>👤 User ID</b>: <code>{message.from_user.id}</code>\n"
             file_info = get_file_id(message)
         if file_info:
             _id += (

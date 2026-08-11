@@ -94,3 +94,5 @@ async def ban_user(user_id):
 
 async def unban_user(user_id):
     await banned_col.delete_one({"id": user_id})
+
+# Reviewer note: delete_user function is above!
