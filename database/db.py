@@ -6,11 +6,12 @@ from config import DB_URI, START_MSG, FORCE_MSG
 import logging
 
 try:
-    client = AsyncIOMotorClient(DB_URI)
+    client = AsyncIOMotorClient(DB_URI, authSource="admin", serverSelectionTimeoutMS=5000)
     db = client["force_subs_bot"]
 except Exception as e:
     logging.getLogger(__name__).error(f"Failed to connect to MongoDB: {e}")
     db = None
+    client = None
 
 # Collections
 if db is not None:
@@ -21,6 +22,18 @@ else:
     users_col = None
     banned_col = None
     settings_col = None
+
+
+async def ensure_connection():
+    if client is None:
+        logging.getLogger(__name__).error("Gagal auth: Motor client tidak diinisialisasi karena error sebelumnya.")
+        raise Exception("Gagal auth: Motor client tidak diinisialisasi karena error sebelumnya.")
+    try:
+        await client.admin.command('ping')
+        logging.getLogger(__name__).info("MongoDB terhubung")
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Gagal auth: {e}")
+        raise e
 
 
 _settings_cache = None

@@ -29,6 +29,14 @@ class Bot(Client):
         self.LOGGER = LOGGER
 
     async def start(self):
+        # Memverifikasi koneksi database dan auth sebelum menjalankan yang lain
+        from database.db import ensure_connection
+        try:
+            await ensure_connection()
+        except Exception as e:
+            self.LOGGER(__name__).warning("Gagal terhubung ke MongoDB. Bot berhenti.")
+            sys.exit(1)
+
         try:
             await super().start()
             usr_bot_me = await self.get_me()
