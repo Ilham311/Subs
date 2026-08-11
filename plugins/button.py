@@ -12,11 +12,7 @@ async def get_fsub_links(client):
     links = []
     for i, fsub in enumerate(fsubs):
         try:
-            try:
-                fsub_id = int(fsub)
-            except ValueError:
-                fsub_id = fsub
-
+            fsub_id = fsub
             chat = await client.get_chat(fsub_id)
             link = chat.invite_link
             if not link:

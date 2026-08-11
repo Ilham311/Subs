@@ -23,12 +23,7 @@ async def check_fsub(client, user_id):
 
     for fsub in fsubs:
         try:
-            # Cast to int if it's a numeric chat ID string
-            try:
-                fsub_id = int(fsub)
-            except ValueError:
-                fsub_id = fsub
-
+            fsub_id = fsub
             member = await client.get_chat_member(chat_id=fsub_id, user_id=user_id)
             if member.status not in [
                 ChatMemberStatus.OWNER,

@@ -12,7 +12,7 @@ from config import (
     PROTECT_CONTENT,
     START_MSG,
 )
-from database.db import add_user, get_all_users, get_settings, is_banned
+from database.db import add_user, get_all_users, get_settings, is_banned, delete_user
 from pyrogram import filters, enums
 from pyrogram.errors import FloodWait, InputUserDeactivated, UserIsBlocked
 from pyrogram.types import InlineKeyboardMarkup, Message, InlineKeyboardButton
@@ -262,16 +262,12 @@ async def send_text(client: Bot, message: Message):
                 except UserIsBlocked:
                     blocked += 1
                     try:
-                        from database.db import delete_user
-
                         await delete_user(chat_id)
                     except Exception:
                         pass
                 except InputUserDeactivated:
                     deleted += 1
                     try:
-                        from database.db import delete_user
-
                         await delete_user(chat_id)
                     except Exception:
                         pass
