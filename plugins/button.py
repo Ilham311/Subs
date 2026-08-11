@@ -1,12 +1,16 @@
 from pyrogram.types import InlineKeyboardButton
 from config import FORCE_SUB_1, FORCE_SUB_2
+from database.db import get_settings
 
 
 async def get_fsub_links(client):
-    fsubs = []
-    if FORCE_SUB_1 and FORCE_SUB_1 != "0":
+    settings = await get_settings()
+    db_fsubs = settings.get("force_sub_channels", [])
+
+    fsubs = list(db_fsubs)
+    if FORCE_SUB_1 and FORCE_SUB_1 != "0" and FORCE_SUB_1 not in fsubs:
         fsubs.append(FORCE_SUB_1)
-    if FORCE_SUB_2 and FORCE_SUB_2 != "0":
+    if FORCE_SUB_2 and FORCE_SUB_2 != "0" and FORCE_SUB_2 not in fsubs:
         fsubs.append(FORCE_SUB_2)
 
     links = []

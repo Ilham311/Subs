@@ -7,15 +7,23 @@ class Data:
  ├ /start - Mulai Bot
  ├ /about - Tentang Bot ini
  ├ /help - Bantuan Perintah Bot ini
- ├ /ping - Untuk mengecek bot hidup
- └ /uptime - Untuk melihat status bot 
+ ├ /ping - Cek ping bot
+ └ /uptime - Cek uptime bot
  
  ❏ Perintah Untuk Admin BOT
- ├ /logs - Untuk melihat logs bot
- ├ /vars - Untuk melihat variable bot
- ├ /users - Untuk melihat statistik pengguna bot
- ├ /batch - Untuk membuat link lebih dari satu file
- └ /broadcast - Untuk mengirim pesan broadcast ke pengguna bot</b>
+ ├ /broadcast - Broadcast pesan ke semua pengguna (balas pesan)
+ ├ /batch - Membuat link sharing lebih dari satu file
+ ├ /genlink - Membuat link sharing dari 1 file
+ ├ /users - Melihat statistik pengguna bot
+ ├ /logs - Melihat logs bot
+ ├ /vars - Melihat variable bot
+ ├ /setstart - Mengubah pesan start secara langsung
+ ├ /setforce - Mengubah pesan Force Sub secara langsung
+ ├ /setdelete - Mengatur waktu auto delete file (detik)
+ ├ /ban - Banned pengguna bot
+ ├ /unban - Unban pengguna
+ ├ /addfsub - Menambahkan channel ke daftar Wajib Subscribe
+ └ /delfsub - Menghapus channel dari daftar Wajib Subscribe</b>
 """
 
     close = [[InlineKeyboardButton("close", callback_data="close")]]

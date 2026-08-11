@@ -38,11 +38,15 @@ docker-compose up -d --build
 
 ### Perintah Admin
 - `/broadcast` : Broadcast pesan ke semua pengguna (balas pesan).
-- `/addfsub [chat_id]` : Menambahkan channel ke daftar Wajib Subscribe.
-- `/delfsub [chat_id]` : Menghapus channel dari daftar Wajib Subscribe.
-- `/setstart [pesan]` : Mengubah pesan start secara langsung.
-- `/setforce [pesan]` : Mengubah pesan Force Sub secara langsung.
-- `/ban [user_id]` : Banned pengguna bot.
-- `/unban [user_id]` : Unban pengguna.
 - `/batch` : Membuat link sharing lebih dari satu file.
 - `/genlink` : Membuat link sharing dari 1 file.
+- `/users` : Melihat statistik pengguna bot.
+- `/logs` : Melihat logs bot.
+- `/vars` : Melihat variable bot.
+- `/setstart [pesan]` : Mengubah pesan start secara langsung.
+- `/setforce [pesan]` : Mengubah pesan Force Sub secara langsung.
+- `/setdelete [detik]` : Mengatur waktu auto delete file (detik).
+- `/ban [user_id]` : Banned pengguna bot.
+- `/unban [user_id]` : Unban pengguna.
+- `/addfsub [chat_id]` : Menambahkan channel ke daftar Wajib Subscribe.
+- `/delfsub [chat_id]` : Menghapus channel dari daftar Wajib Subscribe.

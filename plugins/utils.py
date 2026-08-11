@@ -13,7 +13,6 @@ from config import (
     FORCE_SUB_GROUP,
     HEROKU_API_KEY,
     HEROKU_APP_NAME,
-    LOGGER,
     OWNER,
     PROTECT_CONTENT,
     START_MSG,
