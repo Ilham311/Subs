@@ -220,7 +220,7 @@ async def not_joined(client: Bot, message: Message):
     )
 
 
-@Bot.on_message(filters.command(["users", "stats"]) & filters.user(ADMINS))
+@Bot.on_message(filters.command(["users", "stats"]) & filters.user(ADMINS) & filters.private)
 async def get_users_stats(client: Bot, message: Message):
     msg = await client.send_message(
         chat_id=message.chat.id, text="<code>Processing ...</code>"
@@ -229,7 +229,7 @@ async def get_users_stats(client: Bot, message: Message):
     await msg.edit(f"{total_users} <b>Pengguna menggunakan bot ini</b>")
 
 
-@Bot.on_message(filters.command("broadcast") & filters.user(ADMINS))
+@Bot.on_message(filters.command("broadcast") & filters.user(ADMINS) & filters.private)
 async def send_text(client: Bot, message: Message):
     if message.reply_to_message:
         total = await get_all_users_count()

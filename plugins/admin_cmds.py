@@ -6,7 +6,7 @@ from config import ADMINS, normalize_chat_id
 from database.db import update_settings, get_settings, ban_user, unban_user
 
 
-@Bot.on_message(filters.command("setstart") & filters.user(ADMINS))
+@Bot.on_message(filters.command("setstart") & filters.user(ADMINS) & filters.private)
 async def set_start_cmd(client: Bot, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
@@ -17,7 +17,7 @@ async def set_start_cmd(client: Bot, message: Message):
     await message.reply_text("Pesan Start berhasil diperbarui!")
 
 
-@Bot.on_message(filters.command("setforce") & filters.user(ADMINS))
+@Bot.on_message(filters.command("setforce") & filters.user(ADMINS) & filters.private)
 async def set_force_cmd(client: Bot, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
@@ -28,7 +28,7 @@ async def set_force_cmd(client: Bot, message: Message):
     await message.reply_text("Pesan Force Sub berhasil diperbarui!")
 
 
-@Bot.on_message(filters.command("ban") & filters.user(ADMINS))
+@Bot.on_message(filters.command("ban") & filters.user(ADMINS) & filters.private)
 async def ban_cmd(client: Bot, message: Message):
     if len(message.command) < 2:
         return await message.reply_text("Penggunaan: `/ban [user_id]`")
@@ -40,7 +40,7 @@ async def ban_cmd(client: Bot, message: Message):
         await message.reply_text(f"Error: {e}")
 
 
-@Bot.on_message(filters.command("unban") & filters.user(ADMINS))
+@Bot.on_message(filters.command("unban") & filters.user(ADMINS) & filters.private)
 async def unban_cmd(client: Bot, message: Message):
     if len(message.command) < 2:
         return await message.reply_text("Penggunaan: `/unban [user_id]`")
@@ -73,7 +73,7 @@ async def auto_approve(client: Bot, message):
         pass
 
 
-@Bot.on_message(filters.command("setdelete") & filters.user(ADMINS))
+@Bot.on_message(filters.command("setdelete") & filters.user(ADMINS) & filters.private)
 async def set_delete_cmd(client: Bot, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
@@ -92,7 +92,7 @@ async def set_delete_cmd(client: Bot, message: Message):
         await message.reply_text(f"Error: {e}")
 
 
-@Bot.on_message(filters.command("addfsub") & filters.user(ADMINS))
+@Bot.on_message(filters.command("addfsub") & filters.user(ADMINS) & filters.private)
 async def add_fsub_cmd(client: Bot, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
@@ -117,7 +117,7 @@ async def add_fsub_cmd(client: Bot, message: Message):
     await message.reply_text(f"Berhasil menambahkan {chat_id} ke daftar Wajib Subscribe.")
 
 
-@Bot.on_message(filters.command("delfsub") & filters.user(ADMINS))
+@Bot.on_message(filters.command("delfsub") & filters.user(ADMINS) & filters.private)
 async def del_fsub_cmd(client: Bot, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
