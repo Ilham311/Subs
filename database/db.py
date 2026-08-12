@@ -56,6 +56,11 @@ async def ensure_connection():
                 await settings_col.create_index([("id", pymongo.ASCENDING)], unique=True)
             except (pymongo.errors.DuplicateKeyError, pymongo.errors.OperationFailure) as e:
                 logging.getLogger(__name__).warning(f"Could not create unique index on settings_col: {e}. Skipping to allow bot to start.")
+        if links_col is not None:
+            try:
+                await links_col.create_index([("token", pymongo.ASCENDING)], unique=True)
+            except (pymongo.errors.DuplicateKeyError, pymongo.errors.OperationFailure) as e:
+                logging.getLogger(__name__).warning(f"Could not create unique index on links_col: {e}. Skipping to allow bot to start.")
         logging.getLogger(__name__).info("Database indexes checked/created")
     except Exception as e:
         logging.getLogger(__name__).error(f"Gagal auth: {e}")

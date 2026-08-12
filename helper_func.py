@@ -64,36 +64,40 @@ async def encode(message_ids):
 
 
 async def decode(base64_string, db_channel_id=None):
-    # Try fetching as a random token link first
-    message_ids = await get_link(base64_string)
-    if message_ids:
-        return message_ids
+    try:
+        # Try fetching as a random token link first
+        message_ids = await get_link(base64_string)
+        if message_ids:
+            return message_ids
 
-    # If it is not a token, decode it as a legacy base64 string
-    base64_string_padded = base64_string.strip("=")
-    base64_bytes = (base64_string_padded + "=" * (-len(base64_string_padded) % 4)).encode("ascii")
-    string_bytes = base64.urlsafe_b64decode(base64_bytes)
-    string = string_bytes.decode("ascii")
+        # If it is not a token, decode it as a legacy base64 string
+        base64_string_padded = base64_string.strip("=")
+        base64_bytes = (base64_string_padded + "=" * (-len(base64_string_padded) % 4)).encode("ascii")
+        string_bytes = base64.urlsafe_b64decode(base64_bytes)
+        string = string_bytes.decode("ascii")
 
-    # Process legacy numeric format: get-msg_id or get-start_id-end_id
-    argument = string.split("-")
-    if len(argument) == 3:
-        start = int(argument[1])
-        end = int(argument[2])
-        if db_channel_id:
-            start = start // abs(db_channel_id)
-            end = end // abs(db_channel_id)
-        if start <= end:
-            return list(range(start, end + 1))
-        else:
-            return list(range(start, end - 1, -1))
-    elif len(argument) == 2:
-        msg_id = int(argument[1])
-        if db_channel_id:
-            msg_id = msg_id // abs(db_channel_id)
-        return [msg_id]
+        # Process legacy numeric format: get-msg_id or get-start_id-end_id
+        argument = string.split("-")
+        if len(argument) == 3:
+            start = int(argument[1])
+            end = int(argument[2])
+            if db_channel_id:
+                start = start // abs(db_channel_id)
+                end = end // abs(db_channel_id)
+            if start <= end:
+                return list(range(start, end + 1))
+            else:
+                return list(range(start, end - 1, -1))
+        elif len(argument) == 2:
+            msg_id = int(argument[1])
+            if db_channel_id:
+                msg_id = msg_id // abs(db_channel_id)
+            return [msg_id]
 
-    return []
+        return []
+    except Exception as e:
+        LOGGER(__name__).warning(f"Error decoding link {base64_string}: {e}")
+        return []
 
 
 async def get_messages(client, message_ids):

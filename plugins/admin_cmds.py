@@ -58,7 +58,7 @@ async def unban_cmd(client: Bot, message: Message):
 async def auto_approve(client: Bot, message):
     try:
         settings = await get_settings()
-        fsubs = settings.get("force_sub_channels", [])
+        fsubs = list(settings.get("force_sub_channels", []))
 
         from config import FORCE_SUB_1, FORCE_SUB_2
         if FORCE_SUB_1 and FORCE_SUB_1 != "0" and FORCE_SUB_1 not in fsubs:

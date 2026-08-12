@@ -44,7 +44,9 @@ async def get_fsub_links(client):
                 try:
                     invite = await client.create_chat_invite_link(chat_id=fsub_id)
                     link = invite.invite_link
-                except Exception:
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning(f"Gagal membuat invite link untuk channel {fsub_id}: {e}")
                     link = "" # Cannot generate link
 
             if link:
@@ -54,9 +56,10 @@ async def get_fsub_links(client):
                 db_cache = current_settings.get("invite_links_cache", {})
                 db_cache[fsub_key] = {"title": title, "link": link}
                 await update_settings("invite_links_cache", db_cache)
-
-            links.append({"title": title, "invite_link": link, "index": i + 1})
-        except Exception:
+                links.append({"title": title, "invite_link": link, "index": i + 1})
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Error mengambil chat {fsub_id}: {e}")
             # If bot can't get chat info, fallback to username if possible
             if isinstance(fsub_id, str) and not fsub_id.startswith("-100"):
                 username = fsub_id.replace("@", "")
@@ -66,10 +69,6 @@ async def get_fsub_links(client):
                         "invite_link": f"https://t.me/{username}",
                         "index": i + 1,
                     }
-                )
-            else:
-                links.append(
-                    {"title": f"Channel {i+1}", "invite_link": "", "index": i + 1}
                 )
     return links
 

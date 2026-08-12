@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from time import time
 
 from bot import Bot
@@ -21,7 +21,7 @@ from helper_func import decode, get_messages, subsall
 
 from .button import fsub_button, start_button
 
-START_TIME = datetime.utcnow()
+START_TIME = datetime.now(timezone.utc)
 START_TIME_ISO = START_TIME.replace(microsecond=0).isoformat()
 TIME_DURATION_UNITS = (
     ("week", 60 * 60 * 24 * 7),
@@ -316,7 +316,7 @@ Akun Terhapus (Dihapus dari DB): <code>{deleted}</code></b>"""
 @Bot.on_message(filters.command("ping") & filters.private)
 async def ping_pong(client, m: Message):
     start = time()
-    current_time = datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
     uptime_sec = (current_time - START_TIME).total_seconds()
     uptime = await _human_time_duration(int(uptime_sec))
     m_reply = await m.reply_text("Pinging...")
@@ -330,7 +330,7 @@ async def ping_pong(client, m: Message):
 
 @Bot.on_message(filters.command("uptime") & filters.private)
 async def get_uptime(client, m: Message):
-    current_time = datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
     uptime_sec = (current_time - START_TIME).total_seconds()
     uptime = await _human_time_duration(int(uptime_sec))
     await m.reply_text(
