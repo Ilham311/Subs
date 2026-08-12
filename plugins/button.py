@@ -53,7 +53,7 @@ async def get_fsub_links(client):
                 _cached_invite_links[fsub_key] = {"title": title, "link": link}
                 # We update the DB cache. We fetch current settings again to avoid overwriting other changes
                 current_settings = await get_settings()
-                db_cache = current_settings.get("invite_links_cache", {})
+                db_cache = dict(current_settings.get("invite_links_cache", {}))
                 db_cache[fsub_key] = {"title": title, "link": link}
                 await update_settings("invite_links_cache", db_cache)
                 links.append({"title": title, "invite_link": link, "index": i + 1})

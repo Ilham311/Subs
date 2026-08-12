@@ -1,12 +1,13 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from pyromod.exceptions import ListenerTimeout
 
 from bot import Bot
 from config import ADMINS, LOGGER
 from helper_func import encode, get_message_id
 
 
-@Bot.on_message(filters.private & filters.user(ADMINS) & filters.command("batch"))
+@Bot.on_message(filters.command("batch") & filters.user(ADMINS) & filters.private)
 async def batch(client: Client, message: Message):
     while True:
         try:
@@ -16,6 +17,9 @@ async def batch(client: Client, message: Message):
                 filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
                 timeout=60,
             )
+        except ListenerTimeout:
+            await message.reply("❌ <b>Waktu habis. Silakan ulangi perintah.</b>")
+            return
         except Exception as e:
             LOGGER(__name__).error(f"Error: {e}")
             return
@@ -36,6 +40,9 @@ async def batch(client: Client, message: Message):
                 filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
                 timeout=60,
             )
+        except ListenerTimeout:
+            await message.reply("❌ <b>Waktu habis. Silakan ulangi perintah.</b>")
+            return
         except Exception as e:
             LOGGER(__name__).error(f"Error: {e}")
             return
@@ -73,7 +80,7 @@ async def batch(client: Client, message: Message):
     )
 
 
-@Bot.on_message(filters.private & filters.user(ADMINS) & filters.command("genlink"))
+@Bot.on_message(filters.command("genlink") & filters.user(ADMINS) & filters.private)
 async def link_generator(client: Client, message: Message):
     while True:
         try:
@@ -83,6 +90,9 @@ async def link_generator(client: Client, message: Message):
                 filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
                 timeout=60,
             )
+        except ListenerTimeout:
+            await message.reply("❌ <b>Waktu habis. Silakan ulangi perintah.</b>")
+            return
         except Exception as e:
             LOGGER(__name__).error(f"Error: {e}")
             return

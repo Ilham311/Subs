@@ -58,3 +58,10 @@ docker-compose up -d --build
 * R6: Ensured `/addfsub` correctly validates that the bot is an admin in the targeted channel before adding it to `force_sub_channels`.
 * R7: Prevented plain text messages from admins from automatically generating share links in `channel_post`.
 * R8: Fixed incorrect `broadcast` report totals by adding a skipped-admin counter.
+* R9: Fixed `TypeError: Client.ask() missing 2 required positional arguments` by converting kwargs to positional arguments for `text` and `chat_id` in `ask()` calls.
+* R10: Fixed empty message crashes in `get_messages` by safely filtering out `msg.empty == True` according to Pyrogram v2 rules.
+* R11: Fixed an issue where forwarded messages from the database channel to generate links duplicated the posts inside the database channel.
+* R12: Handled Pyromod timeouts for `/batch` and `/genlink` gracefully to notify admins instead of failing silently.
+* R13: Fixed the `/id` command for groups by removing an erroneous `filters.private` that shadowed the logic.
+* R14: Fixed a severe shared cache mutation bug when creating invite links out of dictionary properties in `plugins/button.py`.
+* R15: Restricted all admin commands exclusively to direct messages using `filters.private` to avoid polluting group chats.
