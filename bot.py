@@ -1,7 +1,7 @@
 import sys
 
-from pyromod import Client
-from pyrogram import enums
+import pyromod.listen
+from pyrogram import Client, enums
 
 from config import (
     API_HASH,
@@ -29,7 +29,6 @@ class Bot(Client):
         self.LOGGER = LOGGER
 
     async def start(self):
-        # Memverifikasi koneksi database dan auth sebelum menjalankan yang lain
         from database.db import ensure_connection
         try:
             await ensure_connection()
@@ -70,12 +69,10 @@ class Bot(Client):
 
         self.set_parse_mode(enums.ParseMode.HTML)
 
-        # Log fsubs
         from database.db import get_settings
         settings = await get_settings()
         fsubs = settings.get("force_sub_channels", [])
 
-        # also count FORCE_SUB_1 and FORCE_SUB_2 if they exist and are not in fsubs
         active_fsubs = list(fsubs)
         if FORCE_SUB_1 and FORCE_SUB_1 != "0" and FORCE_SUB_1 not in active_fsubs:
             active_fsubs.append(FORCE_SUB_1)
