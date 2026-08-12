@@ -25,23 +25,25 @@ async def check_fsub(client, user_id):
     if not fsubs:
         return True
 
-    for fsub in fsubs:
+    async def check_channel(fsub_id):
         try:
-            fsub_id = fsub
             member = await client.get_chat_member(chat_id=fsub_id, user_id=user_id)
             if member.status not in [
                 ChatMemberStatus.OWNER,
                 ChatMemberStatus.ADMINISTRATOR,
                 ChatMemberStatus.MEMBER,
+                ChatMemberStatus.RESTRICTED,
             ]:
                 return False
+            return True
         except UserNotParticipant:
             return False
         except Exception as e:
             LOGGER(__name__).warning(f"Error pada saat mengecek member di channel {fsub_id}: {e}")
-            return False
+            return True # If the bot fails to get member status (e.g., it is not an admin, or the channel is invalid), allow the user so they are not permanently blocked.
 
-    return True
+    results = await asyncio.gather(*(check_channel(fsub) for fsub in fsubs))
+    return all(results)
 
 
 async def is_subscribed(filter, client, update):
@@ -52,21 +54,46 @@ async def is_subscribed(filter, client, update):
 subsall = filters.create(is_subscribed)
 
 
-async def encode(string):
-    string_bytes = string.encode("ascii")
-    base64_bytes = base64.urlsafe_b64encode(string_bytes)
-    base64_string = (base64_bytes.decode("ascii")).strip("=")
-    return base64_string
+import secrets
+from database.db import save_link, get_link
+
+async def encode(message_ids):
+    token = secrets.token_urlsafe(16)
+    await save_link(token, message_ids)
+    return token
 
 
-async def decode(base64_string):
-    base64_string = base64_string.strip(
-        "="
-    )  # links generated before this commit will be having = sign, hence striping them to handle padding errors.
-    base64_bytes = (base64_string + "=" * (-len(base64_string) % 4)).encode("ascii")
+async def decode(base64_string, db_channel_id=None):
+    # Try fetching as a random token link first
+    message_ids = await get_link(base64_string)
+    if message_ids:
+        return message_ids
+
+    # If it is not a token, decode it as a legacy base64 string
+    base64_string_padded = base64_string.strip("=")
+    base64_bytes = (base64_string_padded + "=" * (-len(base64_string_padded) % 4)).encode("ascii")
     string_bytes = base64.urlsafe_b64decode(base64_bytes)
     string = string_bytes.decode("ascii")
-    return string
+
+    # Process legacy numeric format: get-msg_id or get-start_id-end_id
+    argument = string.split("-")
+    if len(argument) == 3:
+        start = int(argument[1])
+        end = int(argument[2])
+        if db_channel_id:
+            start = start // abs(db_channel_id)
+            end = end // abs(db_channel_id)
+        if start <= end:
+            return list(range(start, end + 1))
+        else:
+            return list(range(start, end - 1, -1))
+    elif len(argument) == 2:
+        msg_id = int(argument[1])
+        if db_channel_id:
+            msg_id = msg_id // abs(db_channel_id)
+        return [msg_id]
+
+    return []
 
 
 async def get_messages(client, message_ids):
@@ -114,3 +141,4 @@ async def get_message_id(client, message):
                 return msg_id
         elif channel_id == client.db_channel.username:
             return msg_id
+        return 0

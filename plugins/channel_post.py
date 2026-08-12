@@ -12,6 +12,8 @@ from helper_func import encode
 @Bot.on_message(
     filters.private
     & filters.user(ADMINS)
+    & filters.incoming,
+    group=1
 )
 async def channel_post(client: Client, message: Message):
     if message.text and message.text.startswith("/"):
@@ -30,9 +32,7 @@ async def channel_post(client: Client, message: Message):
         LOGGER(__name__).warning(e)
         await reply_text.edit_text("<b>Telah Terjadi Error...</b>")
         return
-    converted_id = post_message.id * abs(client.db_channel.id)
-    string = f"get-{converted_id}"
-    base64_string = await encode(string)
+    base64_string = await encode([post_message.id])
     link = f"https://t.me/{client.username}?start={base64_string}"
 
     reply_markup = InlineKeyboardMarkup(
@@ -66,9 +66,7 @@ async def new_post(client: Client, message: Message):
     if DISABLE_CHANNEL_BUTTON:
         return
 
-    converted_id = message.id * abs(client.db_channel.id)
-    string = f"get-{converted_id}"
-    base64_string = await encode(string)
+    base64_string = await encode([message.id])
     link = f"https://t.me/{client.username}?start={base64_string}"
     reply_markup = InlineKeyboardMarkup(
         [

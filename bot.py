@@ -1,14 +1,12 @@
-import pyromod.listen
 import sys
 
-from pyrogram import Client, enums
+from pyromod import Client
+from pyrogram import enums
 
 from config import (
     API_HASH,
     APP_ID,
     CHANNEL_ID,
-    FORCE_SUB_CHANNEL,
-    FORCE_SUB_GROUP,
     FORCE_SUB_1,
     FORCE_SUB_2,
     LOGGER,
@@ -36,7 +34,7 @@ class Bot(Client):
         try:
             await ensure_connection()
         except Exception as e:
-            self.LOGGER(__name__).warning("Gagal terhubung ke MongoDB. Bot berhenti.")
+            self.LOGGER(__name__).warning(f"Gagal terhubung ke MongoDB. Bot berhenti. Error: {e}")
             sys.exit(1)
 
         try:
@@ -48,7 +46,7 @@ class Bot(Client):
                 f"TG_BOT_TOKEN detected!\n┌ First Name: {self.namebot}\n└ Username: @{self.username}\n——"
             )
         except Exception as a:
-            self.LOGGER(__name__).warning(a)
+            self.LOGGER(__name__).warning(f"Error pada saat start: {a}")
             self.LOGGER(__name__).info("Bot Berhenti. Cek konfigurasi Anda.")
             sys.exit()
 
@@ -63,7 +61,7 @@ class Bot(Client):
                 f"CHANNEL_ID Database detected!\n┌ Title: {db_channel.title}\n└ Chat ID: {db_channel.id}\n——"
             )
         except Exception as e:
-            self.LOGGER(__name__).warning(e)
+            self.LOGGER(__name__).warning(f"Error channel database: {e}")
             self.LOGGER(__name__).warning(
                 f"Pastikan @{self.username} adalah admin di Channel DataBase anda, CHANNEL_ID Saat Ini: {CHANNEL_ID}"
             )

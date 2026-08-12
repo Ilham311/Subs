@@ -45,8 +45,11 @@ async def unban_cmd(client: Bot, message: Message):
         return await message.reply_text("Penggunaan: `/unban [user_id]`")
     try:
         user_id = int(message.command[1])
-        await unban_user(user_id)
-        await message.reply_text(f"User {user_id} berhasil di-unban.")
+        count = await unban_user(user_id)
+        if count > 0:
+            await message.reply_text(f"User {user_id} berhasil di-unban.")
+        else:
+            await message.reply_text(f"User {user_id} tidak sedang di-ban.")
     except Exception as e:
         await message.reply_text(f"Error: {e}")
 
@@ -54,7 +57,17 @@ async def unban_cmd(client: Bot, message: Message):
 @Bot.on_chat_join_request()
 async def auto_approve(client: Bot, message):
     try:
-        await client.approve_chat_join_request(message.chat.id, message.from_user.id)
+        settings = await get_settings()
+        fsubs = settings.get("force_sub_channels", [])
+
+        from config import FORCE_SUB_1, FORCE_SUB_2
+        if FORCE_SUB_1 and FORCE_SUB_1 != "0" and FORCE_SUB_1 not in fsubs:
+            fsubs.append(FORCE_SUB_1)
+        if FORCE_SUB_2 and FORCE_SUB_2 != "0" and FORCE_SUB_2 not in fsubs:
+            fsubs.append(FORCE_SUB_2)
+
+        if message.chat.id in fsubs or message.chat.username in [str(x).replace('@', '') for x in fsubs if isinstance(x, str)]:
+            await client.approve_chat_join_request(message.chat.id, message.from_user.id)
     except Exception:
         pass
 
