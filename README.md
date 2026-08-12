@@ -50,3 +50,11 @@ docker-compose up -d --build
 - `/unban [user_id]` : Unban pengguna.
 - `/addfsub [chat_id]` : Menambahkan channel ke daftar Wajib Subscribe.
 - `/delfsub [chat_id]` : Menghapus channel dari daftar Wajib Subscribe.
+
+### Changelog (Bug Fixes)
+* R3: Fixed crashes in `/genlink` and `/batch` when forwarding from the DB channel due to Pyrogram missing `forward_from_message.id`.
+* R4: Fixed silent crashes in `/start` caused by `None` or empty `start_msg` and `force_msg` settings.
+* R5: Fixed cache corruption issue in `/addfsub` and `/delfsub` where mutating the in-memory array caused issues on DB write failures.
+* R6: Ensured `/addfsub` correctly validates that the bot is an admin in the targeted channel before adding it to `force_sub_channels`.
+* R7: Prevented plain text messages from admins from automatically generating share links in `channel_post`.
+* R8: Fixed incorrect `broadcast` report totals by adding a skipped-admin counter.
