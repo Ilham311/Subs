@@ -126,23 +126,27 @@ async def get_messages(client, message_ids):
 
 
 async def get_message_id(client, message):
-    if (
-        message.forward_from_chat
-        and message.forward_from_chat.id == client.db_channel.id
-    ):
-        return message.forward_from_message.id
-    elif message.forward_from_chat or message.forward_sender_name or not message.text:
-        return 0
-    else:
-        pattern = "https://t.me/(?:c/)?(.*)/(\\d+)"
-        matches = re.match(pattern, message.text)
-        if not matches:
+    try:
+        if (
+            message.forward_from_chat
+            and message.forward_from_chat.id == client.db_channel.id
+        ):
+            return message.forward_from_message_id
+        elif message.forward_from_chat or message.forward_sender_name or not message.text:
             return 0
-        channel_id = matches.group(1)
-        msg_id = int(matches.group(2))
-        if channel_id.isdigit():
-            if f"-100{channel_id}" == str(client.db_channel.id):
+        else:
+            pattern = "https://t.me/(?:c/)?(.*)/(\\d+)"
+            matches = re.match(pattern, message.text)
+            if not matches:
+                return 0
+            channel_id = matches.group(1)
+            msg_id = int(matches.group(2))
+            if channel_id.isdigit():
+                if f"-100{channel_id}" == str(client.db_channel.id):
+                    return msg_id
+            elif channel_id == client.db_channel.username:
                 return msg_id
-        elif channel_id == client.db_channel.username:
-            return msg_id
+            return 0
+    except Exception as e:
+        LOGGER(__name__).warning(f"Error in get_message_id: {e}")
         return 0

@@ -18,6 +18,8 @@ from helper_func import encode
 async def channel_post(client: Client, message: Message):
     if message.text and message.text.startswith("/"):
         return
+    if not message.media:
+        return
     reply_text = await message.reply_text("<code>Tunggu Sebentar...</code>", quote=True)
     try:
         post_message = await message.copy(

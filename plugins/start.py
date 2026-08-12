@@ -159,7 +159,7 @@ async def start_command(client: Bot, message: Message):
     else:
         out = await start_button(client)
         settings = await get_settings()
-        start_msg = settings.get("start_msg", START_MSG)
+        start_msg = settings.get("start_msg") or START_MSG
         try:
             formatted_text = start_msg.format(
                 first=message.from_user.first_name,
@@ -172,8 +172,11 @@ async def start_command(client: Bot, message: Message):
                 mention=message.from_user.mention,
                 id=message.from_user.id,
             )
-        except (KeyError, IndexError, ValueError):
+        except (KeyError, IndexError, ValueError, AttributeError):
             formatted_text = start_msg
+
+        if not formatted_text or not formatted_text.strip():
+            formatted_text = START_MSG
 
         await message.reply_text(
             text=formatted_text,
@@ -192,7 +195,7 @@ async def not_joined(client: Bot, message: Message):
 
     buttons = await fsub_button(client, message)
     settings = await get_settings()
-    force_msg = settings.get("force_msg", FORCE_MSG)
+    force_msg = settings.get("force_msg") or FORCE_MSG
     try:
         formatted_text = force_msg.format(
             first=message.from_user.first_name,
@@ -203,8 +206,11 @@ async def not_joined(client: Bot, message: Message):
             mention=message.from_user.mention,
             id=message.from_user.id,
         )
-    except (KeyError, IndexError, ValueError):
+    except (KeyError, IndexError, ValueError, AttributeError):
         formatted_text = force_msg
+
+    if not formatted_text or not formatted_text.strip():
+        formatted_text = FORCE_MSG
 
     await message.reply(
         text=formatted_text,
@@ -233,6 +239,7 @@ async def send_text(client: Bot, message: Message):
         deleted = 0
         unsuccessful = 0
         current = 0
+        skipped_admin = 0
 
         pls_wait = await message.reply(
             "<code>[~] Broadcasting Message Tunggu Sebentar...</code>"
@@ -241,8 +248,9 @@ async def send_text(client: Bot, message: Message):
         sem = asyncio.Semaphore(50)  # Limit concurrent broadcasts
 
         async def send_msg(user_id):
-            nonlocal successful, blocked, deleted, unsuccessful
+            nonlocal successful, blocked, deleted, unsuccessful, skipped_admin
             if user_id in ADMINS:
+                skipped_admin += 1
                 return
             async with sem:
                 for retry in range(3):
@@ -300,6 +308,7 @@ async def send_text(client: Bot, message: Message):
 
         status = f"""<b><u>Laporan Broadcast Selesai</u>
 Total Pengguna: <code>{total}</code>
+Dilewati (Admin): <code>{skipped_admin}</code>
 Berhasil Terkirim: <code>{successful}</code>
 Gagal Terkirim: <code>{unsuccessful}</code>
 User Memblokir Bot (Dihapus dari DB): <code>{blocked}</code>

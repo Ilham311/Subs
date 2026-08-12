@@ -1,4 +1,5 @@
 from pyrogram import filters
+from pyrogram.enums import ChatMemberStatus
 from pyrogram.types import Message
 from bot import Bot
 from config import ADMINS, normalize_chat_id
@@ -99,8 +100,15 @@ async def add_fsub_cmd(client: Bot, message: Message):
         )
     chat_id = normalize_chat_id(message.command[1])
 
+    try:
+        member = await client.get_chat_member(chat_id, "me")
+        if member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
+            return await message.reply_text("❌ Gagal menambahkan. Pastikan bot sudah menjadi ADMIN di channel/grup tersebut.")
+    except Exception:
+        return await message.reply_text("❌ Gagal menambahkan. Pastikan bot sudah menjadi ADMIN di channel/grup tersebut.")
+
     settings = await get_settings()
-    fsubs = settings.get("force_sub_channels", [])
+    fsubs = list(settings.get("force_sub_channels", []))
     if chat_id in fsubs:
         return await message.reply_text("Channel tersebut sudah ada di daftar Wajib Subscribe.")
 
@@ -118,7 +126,7 @@ async def del_fsub_cmd(client: Bot, message: Message):
     chat_id = normalize_chat_id(message.command[1])
 
     settings = await get_settings()
-    fsubs = settings.get("force_sub_channels", [])
+    fsubs = list(settings.get("force_sub_channels", []))
     if chat_id not in fsubs:
         return await message.reply_text("Channel tersebut tidak ada di daftar Wajib Subscribe.")
 
