@@ -120,8 +120,10 @@ async def get_messages(client, message_ids):
 
         total_messages += len(temb_ids)
         if msgs:
-            # Filter None to avoid adding invalid messages
-            messages.extend([msg for msg in msgs if msg is not None])
+            # Filter None and empty messages to avoid adding invalid messages
+            messages.extend(
+                [msg for msg in msgs if msg is not None and not msg.empty]
+            )
     return messages
 
 
