@@ -22,10 +22,12 @@ if db is not None:
     users_col = db["users"]
     banned_col = db["banned"]
     settings_col = db["settings"]
+    links_col = db["links"]
 else:
     users_col = None
     banned_col = None
     settings_col = None
+    links_col = None
 
 
 import pymongo
@@ -40,9 +42,25 @@ async def ensure_connection():
 
         # Create indexes
         if users_col is not None:
-            await users_col.create_index([("id", pymongo.ASCENDING)], unique=True)
+            try:
+                await users_col.create_index([("id", pymongo.ASCENDING)], unique=True)
+            except (pymongo.errors.DuplicateKeyError, pymongo.errors.OperationFailure) as e:
+                logging.getLogger(__name__).warning(f"Could not create unique index on users_col: {e}. Skipping to allow bot to start.")
         if banned_col is not None:
-            await banned_col.create_index([("id", pymongo.ASCENDING)], unique=True)
+            try:
+                await banned_col.create_index([("id", pymongo.ASCENDING)], unique=True)
+            except (pymongo.errors.DuplicateKeyError, pymongo.errors.OperationFailure) as e:
+                logging.getLogger(__name__).warning(f"Could not create unique index on banned_col: {e}. Skipping to allow bot to start.")
+        if settings_col is not None:
+            try:
+                await settings_col.create_index([("id", pymongo.ASCENDING)], unique=True)
+            except (pymongo.errors.DuplicateKeyError, pymongo.errors.OperationFailure) as e:
+                logging.getLogger(__name__).warning(f"Could not create unique index on settings_col: {e}. Skipping to allow bot to start.")
+        if links_col is not None:
+            try:
+                await links_col.create_index([("token", pymongo.ASCENDING)], unique=True)
+            except (pymongo.errors.DuplicateKeyError, pymongo.errors.OperationFailure) as e:
+                logging.getLogger(__name__).warning(f"Could not create unique index on links_col: {e}. Skipping to allow bot to start.")
         logging.getLogger(__name__).info("Database indexes checked/created")
     except Exception as e:
         logging.getLogger(__name__).error(f"Gagal auth: {e}")
@@ -52,11 +70,6 @@ async def ensure_connection():
 # Note: This cache is per-process. For multi-process deployment (like Gunicorn with multiple workers),
 # you would need Redis or similar to sync cache invalidations.
 _settings_cache = None
-
-
-async def invalidate_settings_cache():
-    global _settings_cache
-    _settings_cache = None
 
 
 async def get_settings():
@@ -72,21 +85,25 @@ async def get_settings():
             "auto_delete_time": 0,
         }
 
-    setting = await settings_col.find_one({"id": 1})
-    if not setting:
-        # Create default settings
-        default = {
-            "id": 1,
-            "start_msg": START_MSG,
-            "force_msg": FORCE_MSG,
-            "auto_delete_time": 0,  # 0 means disabled
-            "force_sub_channels": []
-        }
-        await settings_col.insert_one(default)
-        _settings_cache = default
-        return default
-    _settings_cache = setting
-    return setting
+    try:
+        setting = await settings_col.find_one_and_update(
+            {"id": 1},
+            {"$setOnInsert": {
+                "id": 1,
+                "start_msg": START_MSG,
+                "force_msg": FORCE_MSG,
+                "auto_delete_time": 0,
+                "force_sub_channels": []
+            }},
+            upsert=True,
+            return_document=pymongo.ReturnDocument.AFTER
+        )
+        _settings_cache = setting
+        return setting
+    except pymongo.errors.DuplicateKeyError:
+        setting = await settings_col.find_one({"id": 1})
+        _settings_cache = setting
+        return setting
 
 
 async def update_settings(key, value):
@@ -108,7 +125,7 @@ async def add_user(user_id, username=None):
     if users_col is not None:
         await users_col.update_one(
             {"id": user_id},
-            {"$set": {"username": username, "last_seen": datetime.datetime.utcnow()}},
+            {"$set": {"username": username, "last_seen": datetime.datetime.now(datetime.timezone.utc)}},
             upsert=True
         )
 
@@ -130,13 +147,34 @@ async def get_all_users_count():
 
 
 async def is_banned(user_id):
+    if banned_col is None:
+        return False
     banned = await banned_col.find_one({"id": user_id})
     return True if banned else False
 
 
 async def ban_user(user_id):
-    await banned_col.insert_one({"id": user_id})
+    if banned_col is None:
+        return
+    await banned_col.update_one({"id": user_id}, {"$set": {"id": user_id}}, upsert=True)
 
 
 async def unban_user(user_id):
-    await banned_col.delete_one({"id": user_id})
+    if banned_col is None:
+        return 0
+    res = await banned_col.delete_one({"id": user_id})
+    return res.deleted_count
+
+async def save_link(token, message_ids):
+    if links_col is not None:
+        await links_col.update_one(
+            {"token": token},
+            {"$set": {"message_ids": message_ids}},
+            upsert=True
+        )
+
+async def get_link(token):
+    if links_col is None:
+        return None
+    link = await links_col.find_one({"token": token})
+    return link.get("message_ids") if link else None

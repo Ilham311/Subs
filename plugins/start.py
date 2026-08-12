@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from time import time
 
 from bot import Bot
@@ -21,7 +21,7 @@ from helper_func import decode, get_messages, subsall
 
 from .button import fsub_button, start_button
 
-START_TIME = datetime.utcnow()
+START_TIME = datetime.now(timezone.utc)
 START_TIME_ISO = START_TIME.replace(microsecond=0).isoformat()
 TIME_DURATION_UNITS = (
     ("week", 60 * 60 * 24 * 7),
@@ -61,39 +61,24 @@ async def start_command(client: Bot, message: Message):
         except Exception as e:
             LOGGER(__name__).error(f"Error: {e}")
             return
-        string = await decode(base64_string)
-        argument = string.split("-")
-        if len(argument) == 3:
-            try:
-                start = int(int(argument[1]) / abs(client.db_channel.id))
-                end = int(int(argument[2]) / abs(client.db_channel.id))
-            except Exception as e:
-                LOGGER(__name__).error(f"Error: {e}")
-                return
-            if start <= end:
-                ids = range(start, end + 1)
-            else:
-                ids = []
-                i = start
-                while True:
-                    ids.append(i)
-                    i -= 1
-                    if i < end:
-                        break
-        elif len(argument) == 2:
-            try:
-                ids = [int(int(argument[1]) / abs(client.db_channel.id))]
-            except Exception as e:
-                LOGGER(__name__).error(f"Error: {e}")
-                return
+
+        # `decode` now returns a list of message_ids directly (or an empty list if invalid)
+        ids = await decode(base64_string, client.db_channel.id)
+
+        if not ids:
+            return await message.reply("Link tidak valid.")
+
         temp_msg = await message.reply("<code>Tunggu Sebentar...</code>")
         try:
-            messages = await get_messages(client, ids)
+            messages = list(await get_messages(client, ids))
         except Exception as e:
             LOGGER(__name__).error(f"Error: {e}")
             await message.reply_text("<b>Telah Terjadi Error </b>🥺")
             return
         await temp_msg.delete()
+
+        if not messages:
+            return await message.reply("File tidak ditemukan atau sudah dihapus.")
 
         settings = await get_settings()
         auto_delete_time = settings.get("auto_delete_time", 0)
@@ -145,7 +130,11 @@ async def start_command(client: Bot, message: Message):
                     except Exception:
                         pass
 
-            asyncio.create_task(delete_msgs(sent_messages, auto_delete_time))
+            task = asyncio.create_task(delete_msgs(sent_messages, auto_delete_time))
+            if not hasattr(client, "_delete_tasks"):
+                client._delete_tasks = set()
+            client._delete_tasks.add(task)
+            task.add_done_callback(client._delete_tasks.discard)
 
             try:
                 bot_username = client.username
@@ -171,8 +160,8 @@ async def start_command(client: Bot, message: Message):
         out = await start_button(client)
         settings = await get_settings()
         start_msg = settings.get("start_msg", START_MSG)
-        await message.reply_text(
-            text=start_msg.format(
+        try:
+            formatted_text = start_msg.format(
                 first=message.from_user.first_name,
                 last=message.from_user.last_name,
                 username=(
@@ -182,7 +171,12 @@ async def start_command(client: Bot, message: Message):
                 ),
                 mention=message.from_user.mention,
                 id=message.from_user.id,
-            ),
+            )
+        except (KeyError, IndexError, ValueError):
+            formatted_text = start_msg
+
+        await message.reply_text(
+            text=formatted_text,
             reply_markup=InlineKeyboardMarkup(out),
             disable_web_page_preview=True,
             quote=True,
@@ -199,8 +193,8 @@ async def not_joined(client: Bot, message: Message):
     buttons = await fsub_button(client, message)
     settings = await get_settings()
     force_msg = settings.get("force_msg", FORCE_MSG)
-    await message.reply(
-        text=force_msg.format(
+    try:
+        formatted_text = force_msg.format(
             first=message.from_user.first_name,
             last=message.from_user.last_name,
             username=(
@@ -208,7 +202,12 @@ async def not_joined(client: Bot, message: Message):
             ),
             mention=message.from_user.mention,
             id=message.from_user.id,
-        ),
+        )
+    except (KeyError, IndexError, ValueError):
+        formatted_text = force_msg
+
+    await message.reply(
+        text=formatted_text,
         reply_markup=InlineKeyboardMarkup(buttons),
         quote=True,
         disable_web_page_preview=True,
@@ -246,35 +245,43 @@ async def send_text(client: Bot, message: Message):
             if user_id in ADMINS:
                 return
             async with sem:
-                try:
-                    await broadcast_msg.copy(user_id, protect_content=PROTECT_CONTENT)
-                    successful += 1
-                except FloodWait as e:
-                    await asyncio.sleep(e.value)
+                for retry in range(3):
                     try:
                         await broadcast_msg.copy(user_id, protect_content=PROTECT_CONTENT)
                         successful += 1
-                    except Exception:
+                        return
+                    except FloodWait as e:
+                        await asyncio.sleep(e.value)
+                        continue
+                    except UserIsBlocked:
+                        blocked += 1
+                        try:
+                            await delete_user(user_id)
+                        except Exception:
+                            pass
+                        return
+                    except InputUserDeactivated:
+                        deleted += 1
+                        try:
+                            await delete_user(user_id)
+                        except Exception:
+                            pass
+                        return
+                    except Exception as e:
+                        LOGGER(__name__).error(f"Error: {e}")
                         unsuccessful += 1
-                except UserIsBlocked:
-                    blocked += 1
-                    try:
-                        await delete_user(user_id)
-                    except Exception:
-                        pass
-                except InputUserDeactivated:
-                    deleted += 1
-                    try:
-                        await delete_user(user_id)
-                    except Exception:
-                        pass
-                except Exception as e:
-                    LOGGER(__name__).error(f"Error: {e}")
-                    unsuccessful += 1
+                        return
+
+                # If we exhausted 3 retries for FloodWait
+                unsuccessful += 1
+
+        # Pre-fetch all user IDs to avoid Mongo cursor timeout on large broadcasts
+        user_ids = []
+        async for row in get_all_users():
+            user_ids.append(int(row["id"]))
 
         tasks = []
-        async for row in get_all_users():
-            chat_id = int(row["id"])
+        for chat_id in user_ids:
             current += 1
             tasks.append(asyncio.create_task(send_msg(chat_id)))
 
@@ -306,10 +313,10 @@ Akun Terhapus (Dihapus dari DB): <code>{deleted}</code></b>"""
         await msg.delete()
 
 
-@Bot.on_message(filters.command("ping"))
+@Bot.on_message(filters.command("ping") & filters.private)
 async def ping_pong(client, m: Message):
     start = time()
-    current_time = datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
     uptime_sec = (current_time - START_TIME).total_seconds()
     uptime = await _human_time_duration(int(uptime_sec))
     m_reply = await m.reply_text("Pinging...")
@@ -321,9 +328,9 @@ async def ping_pong(client, m: Message):
     )
 
 
-@Bot.on_message(filters.command("uptime"))
+@Bot.on_message(filters.command("uptime") & filters.private)
 async def get_uptime(client, m: Message):
-    current_time = datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
     uptime_sec = (current_time - START_TIME).total_seconds()
     uptime = await _human_time_duration(int(uptime_sec))
     await m.reply_text(

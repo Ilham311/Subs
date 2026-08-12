@@ -24,7 +24,7 @@ docker-compose up -d --build
 - `OWNER`: Username Anda tanpa @
 - `CHANNEL_ID`: ID Channel untuk menyimpan database
 - `ADMINS`: Daftar ID (angka) Admin, pisahkan dengan spasi.
-- `DATABASE_URL`: URI Koneksi MongoDB (Cluster / Local)
+- `DATABASE_URL`: URI Koneksi MongoDB (Cluster / Local). **Catatan: Jika menggunakan docker-compose bawaan, url ini wajib diisi `mongodb://mongo:27017` bukan localhost.**
 - `START_MESSAGE`: (Opsional)
 - `FORCE_SUB_MESSAGE`: (Opsional)
 - `PROTECT_CONTENT`: True / False (Cegah Forward)

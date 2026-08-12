@@ -1,7 +1,8 @@
 from pyrogram.types import InlineKeyboardButton
 from config import FORCE_SUB_1, FORCE_SUB_2
-from database.db import get_settings
+from database.db import get_settings, update_settings
 
+_cached_invite_links = {}
 
 async def get_fsub_links(client):
     settings = await get_settings()
@@ -14,16 +15,51 @@ async def get_fsub_links(client):
         fsubs.append(FORCE_SUB_2)
 
     links = []
+    cached_db_links = settings.get("invite_links_cache", {})
+
+    # Merge DB cache with in-memory cache
+    global _cached_invite_links
+    for k, v in cached_db_links.items():
+        if k not in _cached_invite_links:
+            _cached_invite_links[k] = v
+
     for i, fsub in enumerate(fsubs):
         try:
             fsub_id = fsub
+            fsub_key = str(fsub_id)
+            title = f"Channel {i+1}"
+
+            # Use cache if available
+            if fsub_key in _cached_invite_links:
+                cached_data = _cached_invite_links[fsub_key]
+                links.append({"title": cached_data.get("title", title), "invite_link": cached_data.get("link"), "index": i + 1})
+                continue
+
             chat = await client.get_chat(fsub_id)
-            link = chat.invite_link
-            if not link:
-                link = await client.export_chat_invite_link(fsub_id)
             title = chat.title
-            links.append({"title": title, "invite_link": link, "index": i + 1})
-        except Exception:
+            link = chat.invite_link
+
+            if not link:
+                # Use create_chat_invite_link instead of export to avoid revoking
+                try:
+                    invite = await client.create_chat_invite_link(chat_id=fsub_id)
+                    link = invite.invite_link
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning(f"Gagal membuat invite link untuk channel {fsub_id}: {e}")
+                    link = "" # Cannot generate link
+
+            if link:
+                _cached_invite_links[fsub_key] = {"title": title, "link": link}
+                # We update the DB cache. We fetch current settings again to avoid overwriting other changes
+                current_settings = await get_settings()
+                db_cache = current_settings.get("invite_links_cache", {})
+                db_cache[fsub_key] = {"title": title, "link": link}
+                await update_settings("invite_links_cache", db_cache)
+                links.append({"title": title, "invite_link": link, "index": i + 1})
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Error mengambil chat {fsub_id}: {e}")
             # If bot can't get chat info, fallback to username if possible
             if isinstance(fsub_id, str) and not fsub_id.startswith("-100"):
                 username = fsub_id.replace("@", "")
@@ -33,10 +69,6 @@ async def get_fsub_links(client):
                         "invite_link": f"https://t.me/{username}",
                         "index": i + 1,
                     }
-                )
-            else:
-                links.append(
-                    {"title": f"Channel {i+1}", "invite_link": "", "index": i + 1}
                 )
     return links
 

@@ -27,6 +27,7 @@ async def _help(client: Bot, msg: Message):
 
 @Bot.on_callback_query()
 async def cb_handler(client: Bot, query: CallbackQuery):
+    await query.answer()
     data = query.data
     if data == "about":
         try:

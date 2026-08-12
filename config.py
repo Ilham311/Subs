@@ -5,9 +5,9 @@ import os
 def strtobool(val):
     val = val.lower()
     if val in ("y", "yes", "t", "true", "on", "1"):
-        return 1
+        return True
     elif val in ("n", "no", "f", "false", "off", "0"):
-        return 0
+        return False
     else:
         raise ValueError(f"invalid truth value {val!r}")
 
@@ -43,8 +43,14 @@ def normalize_chat_id(value):
     if value.startswith("-100"):
         return int(value)
     if value.startswith("-"):
+        # Could be like -12345, check if we need to add 100
+        if len(value) == 14 and value.startswith("-100"):
+             return int(value)
         return int(f"-100{value[1:]}")
     if value.isdigit():
+        if len(value) == 13 and value.startswith("100"):
+            # Avoid double prefixing if it's already a 13-digit raw id starting with 100
+            return int(f"-{value}")
         return int(f"-100{value}")
 
     return value
@@ -67,7 +73,7 @@ API_HASH = os.environ.get("API_HASH", "")
 # ID Channel Database
 CHANNEL_ID = normalize_chat_id(os.environ.get("CHANNEL_ID"))
 
-# NAMA OWNER
+# NAMA OWNER (This is only a display username. Admin permissions come from ADMINS below)
 OWNER = os.environ.get("OWNER", "owner")
 
 # Protect Content
@@ -86,10 +92,6 @@ DB_URI = os.environ.get("DATABASE_URL", "")
 FORCE_SUB_1 = normalize_chat_id(os.environ.get("FORCE_SUB_1", ""))
 FORCE_SUB_2 = normalize_chat_id(os.environ.get("FORCE_SUB_2", ""))
 
-# ID dari Channel Atau Group Untuk Wajib Subscribenya
-FORCE_SUB_CHANNEL = normalize_chat_id(os.environ.get("FORCE_SUB_CHANNEL", ""))
-FORCE_SUB_GROUP = normalize_chat_id(os.environ.get("FORCE_SUB_GROUP", ""))
-
 TG_BOT_WORKERS = get_int_env("TG_BOT_WORKERS", default=4)
 
 # Pesan Awalan /start
@@ -99,6 +101,8 @@ if not START_MSG:
 
 try:
     ADMINS = [int(x) for x in (os.environ.get("ADMINS", "").split())]
+    if not ADMINS:
+        logging.getLogger(__name__).warning("WARNING: ADMINS is empty. Bot will have no admins.")
 except ValueError:
     raise Exception("Daftar Admin Anda tidak berisi User ID Telegram yang valid.")
 
