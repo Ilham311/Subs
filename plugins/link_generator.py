@@ -11,8 +11,8 @@ async def batch(client: Client, message: Message):
     while True:
         try:
             first_message = await client.ask(
-                text="<b>Silahkan Forward Pesan/File Pertama dari Channel DataBase. (Forward with Qoute)</b>\n\n<b>atau Kirim Link Postingan dari Channel Database</b>",
-                chat_id=message.from_user.id,
+                message.from_user.id,
+                "<b>Silahkan Forward Pesan/File Pertama dari Channel DataBase. (Forward with Qoute)</b>\n\n<b>atau Kirim Link Postingan dari Channel Database</b>",
                 filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
                 timeout=60,
             )
@@ -31,8 +31,8 @@ async def batch(client: Client, message: Message):
     while True:
         try:
             second_message = await client.ask(
-                text="<b>Silahkan Forward Pesan/File Terakhir dari Channel DataBase. (Forward with Qoute)</b>\n\n<b>atau Kirim Link Postingan dari Channel Database</b>",
-                chat_id=message.from_user.id,
+                message.from_user.id,
+                "<b>Silahkan Forward Pesan/File Terakhir dari Channel DataBase. (Forward with Qoute)</b>\n\n<b>atau Kirim Link Postingan dari Channel Database</b>",
                 filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
                 timeout=60,
             )
@@ -78,8 +78,8 @@ async def link_generator(client: Client, message: Message):
     while True:
         try:
             channel_message = await client.ask(
-                text="<b>Silahkan Forward Pesan dari Channel DataBase. (Forward with Qoute)</b>\n\n<b>atau Kirim Link Postingan dari Channel Database</b>",
-                chat_id=message.from_user.id,
+                message.from_user.id,
+                "<b>Silahkan Forward Pesan dari Channel DataBase. (Forward with Qoute)</b>\n\n<b>atau Kirim Link Postingan dari Channel Database</b>",
                 filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
                 timeout=60,
             )
